@@ -8,10 +8,10 @@ Importações rápidas:
     from dissluc.vector import PotentialCLinearRegression, AllocationCClueLike
     from dissluc.schemas import RegressionSpec, AllocationSpec
 """
-from .demand.precomputed              import DemandPreComputedValues, load_demand_csv
-from .vector.potential.continuous.linear import PotentialCLinearRegression
-from .vector.allocation.continuous.clue  import AllocationCClueLike
-from .schemas import RegressionSpec, AllocationSpec
+from .modules.demand.precomputed              import DemandPreComputedValues, load_demand_csv
+from .modules.vector.potential.continuous.linear import PotentialCLinearRegression
+from .modules.vector.allocation.continuous.clue  import AllocationCClueLike
+from .modules.schemas import RegressionSpec, AllocationSpec
 
 __all__ = [
     "DemandPreComputedValues",

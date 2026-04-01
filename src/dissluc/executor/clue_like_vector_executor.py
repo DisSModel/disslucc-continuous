@@ -63,7 +63,7 @@ class LUCCVectorExecutor(ModelExecutor):
             DemandPreComputedValues, load_demand_csv,
             PotentialCLinearRegression, AllocationCClueLike,
         )
-        from dissluc.schemas import RegressionSpec, AllocationSpec
+        from dissluc.modules.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
         params   = record.parameters

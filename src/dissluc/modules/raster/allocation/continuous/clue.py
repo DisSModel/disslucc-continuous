@@ -16,7 +16,7 @@ Fixes vs previous version
 from __future__ import annotations
 import numpy as np
 
-from dissluc.schemas import AllocationSpec
+from dissluc.modules.schemas import AllocationSpec
 
 from dissmodel.geo import SyncRasterModel
 
