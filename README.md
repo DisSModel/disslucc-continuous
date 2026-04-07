@@ -35,18 +35,6 @@ DisSLUCC runs on top of **[DissModel](https://github.com/LambdaGeo/dissmodel)**,
 
 ---
 
-### 📝 English Chunk of the Day
-Quando você tem um trecho de código ou texto que pode substituir uma versão antiga perfeitamente, sem precisar alterar mais nada ao redor, chamamos isso de **"Drop-in replacement"** (uma substituição direta/imediata).
-* **Exemplo:** *"You can copy this updated block and use it as a **drop-in replacement** for the old Quick Start section."*
-
----
-
-Entendido! Aqui está o bloco `## 🚀 Quick Start` atualizado. 
-
-Eu mantive os seus comandos originais de desenvolvimento (incluindo o `validate` que checa o contrato de dados do executor) e inseri o nosso novo **Benchmark** na posição ideal para fechar a seção de CLI local com chave de ouro.
-
-Pode usar este bloco como um *drop-in replacement* no seu `README.md`:
-
 ## 🚀 Quick Start
 
 DisSLUCC supports two usage modes that share the same model code — **CLI local** for development and exploration, **Platform API** for reproducible production runs.
@@ -74,14 +62,14 @@ python lab1_raster.py run \
 # Validate executor data contract without running
 python lab1_raster.py validate --input data/input/csAC.zip
 
-# Run the Benchmark suite (Vector vs Raster vs TerraME comparison)
+# Run the Benchmark suite (Vector vs Raster vs TerraME/LUCCME comparison)
 python -m dissluc.executor.lucc_benchmark_executor run \
-  --input examples/data/input/csAC.zip \
+  --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
-  --param demand_csv=examples/data/input/examples_demand_lab1.csv \
-  --param terrame_reference=benchmark/data/LUCCME_Lab1_2014.zip \
-  --param n_steps=6 \
-  --param tolerance=0.01
+  --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
+  --param  terrame_reference=benchmark/data/LUCCME_Lab1_2014.zip \
+  --param  n_steps=6 \
+  --param  tolerance=0.01
 
 # Show resolved parameters
 python lab1_raster.py show --toml examples/model.toml
@@ -197,21 +185,43 @@ AllocationCClueLike(
 DisSLUCC follows the DissModel `ModelExecutor` pattern — each executor separates science from infrastructure. The same model runs locally via CLI or on the platform via API without changing a single line.
 
 ```
-Camada de Ciência (Model / Salabim)
+Science Layer (Model / Salabim)
   PotentialCLinearRegression, AllocationCClueLike, DemandPreComputedValues
   → only knows math, geometry and time
 
-Camada de Infraestrutura (ModelExecutor)
-  LUCCRasterExecutor, LUCCVectorExecutor
+Infrastructure Layer (ModelExecutor)
+  LUCCRasterExecutor, LUCCVectorExecutor, LUCCBenchmarkExecutor
   → only knows URIs, MinIO, column_map, parameters
 ```
 
 ### Executors available
 
-| name | Substrate | Input → Output |
-|------|-----------|----------------|
-| `lucc_raster` | RasterBackend / NumPy | Shapefile → GeoTIFF |
-| `lucc_vector` | GeoDataFrame | Shapefile → GeoPackage |
+| name | Substrate | Input → Output | Description |
+|------|-----------|----------------|-------------|
+| `lucc_raster` | RasterBackend / NumPy | Shapefile → GeoTIFF | Production raster simulation |
+| `lucc_vector` | GeoDataFrame | Shapefile → GeoPackage | Production vector simulation |
+| `lucc_benchmark` | Both | Shapefile → MD + PNG | Vector vs Raster vs TerraME comparison |
+
+### Benchmark executor
+
+The `LUCCBenchmarkExecutor` is a meta-executor that runs vector and raster substrates in a single pass and compares both against a TerraME/LUCCME reference result. It generates a Markdown report and scatter plots — the primary tool for validating numerical equivalence before publishing results.
+
+```bash
+python -m dissluc.executor.lucc_benchmark_executor run \
+  --input  examples/data/input/csAC.zip \
+  --output ./benchmark/ \
+  --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
+  --param  terrame_reference=benchmark/data/LUCCME_Lab1_2014.zip \
+  --param  n_steps=6 \
+  --param  tolerance=0.01
+```
+
+Output:
+```
+benchmark/
+  report.md    ← runtime comparison + accuracy metrics (match %, MAE, RMSE) per substrate and band
+  scatter.png  ← scatter plots: Vector vs Raster vs TerraME for each land-use band
+```
 
 ### Implementing a custom executor
 
@@ -220,7 +230,6 @@ Camada de Infraestrutura (ModelExecutor)
 from dissmodel.executor     import ExperimentRecord, ModelExecutor
 from dissmodel.executor.cli import run_cli
 from dissmodel.io           import load_dataset, save_dataset
-from dissmodel.io.convert   import vector_to_raster_backend
 
 
 class MyLUCCExecutor(ModelExecutor):
@@ -239,7 +248,6 @@ class MyLUCCExecutor(ModelExecutor):
         from dissluc.vector.potential.continuous.linear import PotentialCLinearRegression
         from dissluc.vector.allocation.continuous.clue  import AllocationCClueLike
 
-        spec   = record.resolved_spec.get("model", {})
         params = record.parameters
         gdf    = self.load(record)
         env    = Environment(end_time=params.get("n_steps", 7) - 1)
@@ -315,16 +323,28 @@ lu    = "outros"
 const = 0.0
 
 [[model.allocation]]
-lu = "f"
-static = -1  min_value = 0  max_value = 1  min_change = 0  max_change = 1
+lu         = "f"
+static     = -1
+min_value  = 0
+max_value  = 1
+min_change = 0
+max_change = 1
 
 [[model.allocation]]
-lu = "d"
-static = -1  min_value = 0  max_value = 1  min_change = 0  max_change = 1
+lu         = "d"
+static     = -1
+min_value  = 0
+max_value  = 1
+min_change = 0
+max_change = 1
 
 [[model.allocation]]
-lu = "outros"
-static = 1   min_value = 0  max_value = 1  min_change = 0  max_change = 1
+lu         = "outros"
+static     = 1
+min_value  = 0
+max_value  = 1
+min_change = 0
+max_change = 1
 ```
 
 ---
@@ -354,29 +374,32 @@ pip install "git+https://github.com/LambdaGeo/DisSLUCC.git@develop"
 DisSLUCC/
 ├── dissluc/
 │   ├── __init__.py
-│   ├── executor/                    # ModelExecutor implementations
-│   │   ├── __init__.py              # imports executors → auto-registration
-│   │   ├── lucc_raster_executor.py  # RasterBackend/NumPy substrate
-│   │   └── lucc_vector_executor.py  # GeoDataFrame substrate
-│   ├── raster/                      # Raster model components
+│   ├── executor/                           # ModelExecutor implementations
+│   │   ├── __init__.py                     # imports executors → auto-registration
+│   │   ├── lucc_raster_executor.py         # RasterBackend/NumPy substrate
+│   │   ├── lucc_vector_executor.py         # GeoDataFrame substrate
+│   │   └── lucc_benchmark_executor.py      # Vector vs Raster vs TerraME comparison
+│   ├── raster/                             # Raster model components
 │   │   ├── potential/continuous/linear.py
 │   │   └── allocation/continuous/clue.py
-│   ├── vector/                      # Vector model components
+│   ├── vector/                             # Vector model components
 │   │   ├── potential/continuous/linear.py
 │   │   └── allocation/continuous/clue.py
-│   ├── demand/                      # Demand components
+│   ├── demand/                             # Demand components
 │   │   └── precomputed.py
-│   ├── io/                          # Cellular space utilities
+│   ├── io/                                 # Cellular space utilities
 │   │   └── operators.py
-│   ├── schemas.py                   # RegressionSpec, AllocationSpec
-│   └── validation/                  # Costanza, Kappa metrics
+│   ├── schemas.py                          # RegressionSpec, AllocationSpec
+│   └── validation/                         # Costanza, Kappa metrics
 ├── examples/
-│   ├── lab1_raster.py               # LUCCRasterExecutor via CLI
-│   ├── lab1_vector.py               # LUCCVectorExecutor via CLI
-│   ├── model.toml                   # Calibrated coefficients for Lab1
+│   ├── lab1_raster.py                      # LUCCRasterExecutor via CLI
+│   ├── lab1_vector.py                      # LUCCVectorExecutor via CLI
+│   ├── model.toml                          # Calibrated coefficients for Lab1
 │   └── data/
 │       ├── input/csAC.zip
 │       └── output/
+├── benchmark/
+│   └── data/LUCCME_Lab1_2014.zip           # TerraME/LUCCME reference results
 ├── docs/
 └── tests/
 ```
@@ -389,7 +412,8 @@ DisSLUCC/
 2. **Transparency** — Regression coefficients and allocation rules are explicit in TOML, version-controlled.
 3. **Reproducibility** — Each experiment records model commit, input checksum, and resolved spec via `ExperimentRecord`.
 4. **Two substrates** — Same algorithms available for vector (GeoDataFrame) and raster (RasterBackend/NumPy).
-5. **Executor pattern** — Science layer (models) never knows about files, URIs or cloud; infrastructure layer (executors) never calculates spatial equations.
+5. **Executor pattern** — Science layer never knows about files or cloud; infrastructure layer never calculates spatial equations.
+6. **Benchmark-first validation** — `lucc_benchmark` validates numerical equivalence between substrates and against TerraME/LUCCME reference results before any production use.
 
 ---
 
