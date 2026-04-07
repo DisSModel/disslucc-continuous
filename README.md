@@ -35,6 +35,18 @@ DisSLUCC runs on top of **[DissModel](https://github.com/LambdaGeo/dissmodel)**,
 
 ---
 
+### 📝 English Chunk of the Day
+Quando você tem um trecho de código ou texto que pode substituir uma versão antiga perfeitamente, sem precisar alterar mais nada ao redor, chamamos isso de **"Drop-in replacement"** (uma substituição direta/imediata).
+* **Exemplo:** *"You can copy this updated block and use it as a **drop-in replacement** for the old Quick Start section."*
+
+---
+
+Entendido! Aqui está o bloco `## 🚀 Quick Start` atualizado. 
+
+Eu mantive os seus comandos originais de desenvolvimento (incluindo o `validate` que checa o contrato de dados do executor) e inseri o nosso novo **Benchmark** na posição ideal para fechar a seção de CLI local com chave de ouro.
+
+Pode usar este bloco como um *drop-in replacement* no seu `README.md`:
+
 ## 🚀 Quick Start
 
 DisSLUCC supports two usage modes that share the same model code — **CLI local** for development and exploration, **Platform API** for reproducible production runs.
@@ -59,8 +71,17 @@ python lab1_raster.py run \
   --input data/input/csAC.zip \
   --toml  examples/model.toml
 
-# Validate executor contract without running
+# Validate executor data contract without running
 python lab1_raster.py validate --input data/input/csAC.zip
+
+# Run the Benchmark suite (Vector vs Raster vs TerraME comparison)
+python -m dissluc.executor.lucc_benchmark_executor run \
+  --input examples/data/input/csAC.zip \
+  --output ./benchmark/ \
+  --param demand_csv=examples/data/input/examples_demand_lab1.csv \
+  --param terrame_reference=benchmark/data/LUCCME_Lab1_2014.zip \
+  --param n_steps=6 \
+  --param tolerance=0.01
 
 # Show resolved parameters
 python lab1_raster.py show --toml examples/model.toml
