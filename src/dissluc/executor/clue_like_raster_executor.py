@@ -79,9 +79,9 @@ class LUCCRasterExecutor(ModelExecutor):
     def run(self, record: ExperimentRecord):
         from dissmodel.core import Environment
         from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.raster.potential.continuous.linear import PotentialCLinearRegression
-        from dissluc.raster.allocation.continuous.clue  import AllocationCClueLike
-        from dissluc.schemas import RegressionSpec, AllocationSpec
+        from dissluc.modules.raster.potential.continuous.linear import PotentialCLinearRegression
+        from dissluc.modules.raster.allocation.continuous.clue  import AllocationCClueLike
+        from dissluc.modules.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
         params   = record.parameters
