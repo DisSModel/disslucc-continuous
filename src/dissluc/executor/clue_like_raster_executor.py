@@ -76,7 +76,13 @@ class LUCCRasterExecutor(ModelExecutor):
                     f"Expected keys from spec: {expected}"
                 )
 
-    def run(self, record: ExperimentRecord):
+    def run(self, data, record: ExperimentRecord):
+        """
+        Validate bands, then execute the LUCC simulation.
+
+        `data` is the RasterBackend returned by load(), injected by the platform.
+        No I/O happens here — rasterization is done once in load().
+        """
         from dissmodel.core import Environment
         from dissluc import DemandPreComputedValues, load_demand_csv
         from dissluc.modules.raster.potential.continuous.linear import PotentialCLinearRegression
@@ -88,10 +94,10 @@ class LUCCRasterExecutor(ModelExecutor):
         lu_types = spec.get("land_use_types", ["f", "d", "outros"])
         n_steps  = params.get("n_steps", 7)
 
-        # ── single load ───────────────────────────────────────────────────────
-        backend = self.load(record)
+        # data injected by execute_lifecycle — no I/O here
+        backend = data
 
-        # ── band-level validation (only possible after rasterization) ─────────
+        # band-level validation (only possible after rasterization)
         _check_bands(backend, spec)
 
         # ── build models ──────────────────────────────────────────────────────

@@ -57,7 +57,13 @@ class LUCCVectorExecutor(ModelExecutor):
                     f"Expected keys from spec: {expected}"
                 )
 
-    def run(self, record: ExperimentRecord) -> gpd.GeoDataFrame:
+    def run(self, data: gpd.GeoDataFrame, record: ExperimentRecord) -> gpd.GeoDataFrame:
+        """
+        Validate columns, then execute the LUCC simulation.
+
+        `data` is the GeoDataFrame returned by load(), injected by the platform.
+        No I/O happens here.
+        """
         from dissmodel.core import Environment
         from dissluc import (
             DemandPreComputedValues, load_demand_csv,
@@ -70,10 +76,10 @@ class LUCCVectorExecutor(ModelExecutor):
         lu_types = spec.get("land_use_types", ["f", "d", "outros"])
         n_steps  = params.get("n_steps", 7)
 
-        # ── single load ───────────────────────────────────────────────────────
-        gdf = self.load(record)
+        # data injected by execute_lifecycle — no I/O here
+        gdf = data
 
-        # ── column-level validation (only possible after load) ────────────────
+        # column-level validation (only possible after load)
         _check_columns(gdf, spec)
 
         # ── build models ──────────────────────────────────────────────────────
