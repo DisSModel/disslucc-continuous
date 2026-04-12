@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [{ name = "Your Name", email = "your.email@ufma.br" }]
 license = { text = "MIT" }
 dependencies = [
-    "dissmodel>=0.3.0",
+    "dissmodel @ git+https://github.com/LambdaGeo/dissmodel.git@develop",
     "pandas>=1.5.0",
     "numpy>=1.23.0",
     "geopandas>=0.12.0",
