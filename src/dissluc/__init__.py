@@ -8,9 +8,8 @@ Importações rápidas:
     from dissluc.vector import PotentialLinearRegression, AllocationClueLike
     from dissluc.schemas import RegressionSpec, AllocationSpec
 """
-from .demand.precomputed              import DemandPreComputedValues, load_demand_csv
-from .vector.potential.linear         import PotentialLinearRegression
-from .vector.allocation.clue          import AllocationClueLike
+from .demand  import DemandPreComputedValues, load_demand_csv
+from .vector  import PotentialLinearRegression, AllocationClueLike
 from .schemas import RegressionSpec, AllocationSpec
 
 __all__ = [
