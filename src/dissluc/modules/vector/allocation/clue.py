@@ -5,9 +5,9 @@ import pandas as pd
 from dissluc.modules.schemas import AllocationSpec
 from dissmodel.geo import SyncSpatialModel
 
-class AllocationCClueLike(SyncSpatialModel):
+class AllocationClueLike(SyncSpatialModel):
     """
-    Alocação contínua tipo C-CLUE (Verburg et al. 1999).
+    Alocação contínua tipo CLUE (Verburg et al. 1999).
 
     _past é gerenciado pelo LUCSpatialModel via synchronize()
     após cada execute() — equivale ao cs:synchronize() do TerraME.

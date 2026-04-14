@@ -65,10 +65,9 @@ class LUCCVectorExecutor(ModelExecutor):
         No I/O happens here.
         """
         from dissmodel.core import Environment
-        from dissluc import (
-            DemandPreComputedValues, load_demand_csv,
-            PotentialCLinearRegression, AllocationCClueLike,
-        )
+        from dissluc import DemandPreComputedValues, load_demand_csv
+        from dissluc.modules.vector.potential.linear import PotentialLinearRegression
+        from dissluc.modules.vector.allocation.clue  import AllocationClueLike
         from dissluc.modules.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
@@ -104,7 +103,7 @@ class LUCCVectorExecutor(ModelExecutor):
             for a in spec.get("allocation", [])
         ]]
 
-        potential = PotentialCLinearRegression(
+        potential = PotentialLinearRegression(
             gdf              = gdf,
             potential_data   = potential_data,
             demand           = demand,
@@ -112,7 +111,7 @@ class LUCCVectorExecutor(ModelExecutor):
             land_use_no_data = spec.get("land_use_no_data", "outros"),
         )
 
-        AllocationCClueLike(
+        AllocationClueLike(
             gdf             = gdf,
             demand          = demand,
             potential       = potential,
