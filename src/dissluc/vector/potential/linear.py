@@ -1,52 +1,40 @@
-"""
-dissluc/raster/potential/linear.py
-----------------------------------
-Raster version of PotentialLinearRegression.
-Operates on RasterBackend arrays instead of GeoDataFrame columns.
-"""
 from __future__ import annotations
 import math
-import numpy as np
 
-from dissluc.modules.schemas import RegressionSpec
+from dissluc.schemas import RegressionSpec
 
-from dissmodel.geo import SyncRasterModel
+from dissmodel.geo import SyncSpatialModel
 
-class PotentialLinearRegression(SyncRasterModel):
+class PotentialLinearRegression(SyncSpatialModel):
     """
-    Raster potential via linear regression (Verburg et al. 1999).
-
-    All driver and LU arrays must be pre-loaded into the RasterBackend.
-    Array names must match the beta keys in RegressionSpec.betas.
+    Potencial de mudança por regressão linear contínua (CLUE).
+    Verburg et al. (1999).
     """
 
     def setup(
         self,
-        backend,
         potential_data:   list[list[RegressionSpec]],
         demand,
         land_use_types:   list[str],
         land_use_no_data: str | None = None,
         region_attr:      str = "region",
     ) -> None:
-        super().setup(backend)
         self.potential_data   = potential_data
         self.demand           = demand
         self.land_use_types   = land_use_types
         self.land_use_no_data = land_use_no_data
         self.region_attr      = region_attr
 
-        # ensure region array exists — default all cells to region 1
-        if region_attr not in self.backend.arrays:
-            self.backend.set(region_attr, np.ones(self.shape, dtype=np.int32))
+        if self.region_attr not in self.gdf.columns:
+            self.gdf[self.region_attr] = 1
 
-        # initialise newconst and _pot arrays
         for region in self.potential_data:
             for spec in region:
                 spec.newconst = spec.const
 
         for lu in self.land_use_types:
-            self.backend.set(lu + "_pot", np.zeros(self.shape, dtype=np.float32))
+            self.gdf[lu + "_pot"] = 0.0
+        # _past: criado e gerenciado pelo Allocation via synchronize()
 
     def execute(self) -> None:
         step = int(self.env.now())
@@ -75,24 +63,19 @@ class PotentialLinearRegression(SyncRasterModel):
     def _compute_potential(self, r_number: int, lu_idx: int) -> None:
         lu   = self.land_use_types[lu_idx]
         spec = self.potential_data[r_number - 1][lu_idx]
-        mask = self.backend.get(self.region_attr) == r_number  # bool 2D
+        mask = self.gdf[self.region_attr] == r_number
 
-        reg = np.full(self.shape, spec.newconst, dtype=np.float32)
+        reg = self.gdf.loc[mask, self.land_use_types[0]] * 0.0 + spec.newconst
         for col, beta in spec.betas.items():
-            reg += beta * self.backend.get(col).astype(np.float32)
+            reg = reg + beta * self.gdf.loc[mask, col]
 
         if spec.is_log:
-            reg = 10.0 ** reg
-        reg = np.clip(reg, 0.0, 1.0)
-
+            reg = 10 ** reg
+        reg = reg.clip(0, 1)
         if self.land_use_no_data:
-            no_data_arr = self.backend.get(self.land_use_no_data).astype(np.float32)
-            reg = reg * (1.0 - no_data_arr)
+            reg = reg * (1.0 - self.gdf.loc[mask, self.land_use_no_data])
 
-        lu_past = self.backend.get(lu + "_past").astype(np.float32)
-        pot     = self.backend.arrays[lu + "_pot"].copy()
-        pot     = np.where(mask, reg - lu_past, pot)
-        self.backend.arrays[lu + "_pot"] = pot
+        self.gdf.loc[mask, lu + "_pot"] = reg - self.gdf.loc[mask, lu + "_past"]
 
     def modify(self, r_number: int, lu_idx: int, direction: int) -> None:
         spec = self.potential_data[r_number - 1][lu_idx]

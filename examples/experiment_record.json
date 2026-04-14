@@ -1,6 +1,6 @@
 {
-  "experiment_id": "737852f104004c90a165216f50946980",
-  "created_at": "2026-04-14T11:09:29.774480",
+  "experiment_id": "4eadf928546843d8ad0c49e29eeb4758",
+  "created_at": "2026-04-14T16:37:54.194973",
   "model_name": "local",
   "model_commit": "local-cli",
   "code_version": "dev",
@@ -113,20 +113,19 @@
     ],
     "land_use_no_data": "outros",
     "complementar_lu": "f",
-    "cell_area": 25.0,
-    "interactive": true
+    "cell_area": 25.0
   },
   "output_path": "local_output.gpkg",
   "artifacts": {
-    "output": "acfa5f2e5f9761a8c1d035cb58ff74a800e2234bd2a78330e67b57cedce1bd3b",
-    "profiling": "b50fc1ff14bd999a20120b17fc85c8a07965f4c7661b6e226c17aa953606be94"
+    "output": "2b4f9aa1e34fc036676c05e6d33543eef0a918c988e3f46bb931a4a1a66c5749",
+    "profiling": "a1f3b00756132660df4aead4c04e7facda3072e6a989c14980aa8d789c70c61a"
   },
   "metrics": {
     "time_validate_sec": 0.0,
-    "time_load_sec": 0.236,
-    "time_run_sec": 8.882,
-    "time_save_sec": 0.544,
-    "time_total_sec": 9.663
+    "time_load_sec": 0.256,
+    "time_run_sec": 1.237,
+    "time_save_sec": 3.253,
+    "time_total_sec": 4.746
   },
   "status": "completed",
   "logs": [
@@ -134,6 +133,6 @@
     "Running 7 steps...",
     "Simulation complete",
     "Saved to local_output.gpkg",
-    "Saved profiling artifact → ./profiling_737852f1.md"
+    "Saved profiling artifact → ./profiling_4eadf928.md"
   ]
 }

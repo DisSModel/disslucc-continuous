@@ -32,10 +32,10 @@ from dissmodel.core import Environment
 from dissmodel.geo.raster.backend import RasterBackend
 
 from dissluc import DemandPreComputedValues, load_demand_csv
-from dissluc.vector.potential.continuous.linear import PotentialCLinearRegression as VecPotential
-from dissluc.vector.allocation.continuous.clue  import AllocationCClueLike        as VecAllocation
-from dissluc.raster.potential.continuous.linear import PotentialCLinearRegression as RasPotential
-from dissluc.raster.allocation.continuous.clue  import AllocationCClueLike        as RasAllocation
+from dissluc.vector.potential.linear import PotentialLinearRegression as VecPotential
+from dissluc.vector.allocation.clue  import AllocationClueLike        as VecAllocation
+from dissluc.raster.potential.linear import PotentialLinearRegression as RasPotential
+from dissluc.raster.allocation.clue  import AllocationClueLike        as RasAllocation
 from dissluc.schemas import RegressionSpec, AllocationSpec
 
 # ── configuration ─────────────────────────────────────────────────────────────

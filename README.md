@@ -153,9 +153,9 @@ potential = PotentialCLinearRegression(
 Spatially distributes changes based on demand and cell-level potential.
 
 ```python
-from dissluc import AllocationCClueLike, AllocationSpec
+from dissluc import AllocationClueLike, AllocationSpec
 
-AllocationCClueLike(
+AllocationClueLike(
     gdf             = gdf,
     demand          = demand,
     potential       = potential,
@@ -175,8 +175,8 @@ AllocationCClueLike(
 
 | Discrete | Continuous |
 |----------|-----------|
-| `AllocationDClueSLike` | `AllocationCClueLike` ✅ |
-| `AllocationDSimpleOrdering` | `AllocationCClueLikeSaturation` |
+| `AllocationDClueSLike` | `AllocationClueLike` ✅ |
+| `AllocationDSimpleOrdering` | `AllocationClueLikeSaturation` |
 
 ---
 
@@ -186,7 +186,7 @@ DisSLUCC follows the DissModel `ModelExecutor` pattern — each executor separat
 
 ```
 Science Layer (Model / Salabim)
-  PotentialCLinearRegression, AllocationCClueLike, DemandPreComputedValues
+  PotentialCLinearRegression, AllocationClueLike, DemandPreComputedValues
   → only knows math, geometry and time
 
 Infrastructure Layer (ModelExecutor)
@@ -245,8 +245,8 @@ class MyLUCCExecutor(ModelExecutor):
     def run(self, record: ExperimentRecord):
         from dissmodel.core import Environment
         from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.vector.potential.continuous.linear import PotentialCLinearRegression
-        from dissluc.vector.allocation.continuous.clue  import AllocationCClueLike
+        from dissluc.vector.potential.linear import PotentialLinearRegression
+        from dissluc.vector.allocation.clue  import AllocationClueLike
 
         params = record.parameters
         gdf    = self.load(record)
@@ -254,7 +254,7 @@ class MyLUCCExecutor(ModelExecutor):
 
         demand    = DemandPreComputedValues(...)
         potential = PotentialCLinearRegression(gdf=gdf, ...)
-        AllocationCClueLike(gdf=gdf, ...)
+        AllocationClueLike(gdf=gdf, ...)
 
         env.run()
         return gdf
@@ -372,25 +372,30 @@ pip install "git+https://github.com/LambdaGeo/DisSLUCC.git@develop"
 
 ```
 DisSLUCC/
-├── dissluc/
+├── src/dissluc/
 │   ├── __init__.py
+│   ├── core.py
+│   ├── schemas.py                          # RegressionSpec, AllocationSpec
 │   ├── executor/                           # ModelExecutor implementations
-│   │   ├── __init__.py                     # imports executors → auto-registration
-│   │   ├── lucc_raster_executor.py         # RasterBackend/NumPy substrate
-│   │   ├── lucc_vector_executor.py         # GeoDataFrame substrate
+│   │   ├── __init__.py
+│   │   ├── clue_like_raster_executor.py    # RasterBackend/NumPy substrate
+│   │   ├── clue_like_vector_executor.py    # GeoDataFrame substrate
 │   │   └── lucc_benchmark_executor.py      # Vector vs Raster vs TerraME comparison
 │   ├── raster/                             # Raster model components
-│   │   ├── potential/continuous/linear.py
-│   │   └── allocation/continuous/clue.py
+│   │   ├── __init__.py
+│   │   ├── potential/
+│   │   │   └── linear.py
+│   │   └── allocation/
+│   │       └── clue.py
 │   ├── vector/                             # Vector model components
-│   │   ├── potential/continuous/linear.py
-│   │   └── allocation/continuous/clue.py
-│   ├── demand/                             # Demand components
-│   │   └── precomputed.py
-│   ├── io/                                 # Cellular space utilities
-│   │   └── operators.py
-│   ├── schemas.py                          # RegressionSpec, AllocationSpec
-│   └── validation/                         # Costanza, Kappa metrics
+│   │   ├── __init__.py
+│   │   ├── potential/
+│   │   │   └── linear.py
+│   │   └── allocation/
+│   │       └── clue.py
+│   └── demand/                             # Demand components
+│       ├── __init__.py
+│       └── precomputed.py
 ├── examples/
 │   ├── lab1_raster.py                      # LUCCRasterExecutor via CLI
 │   ├── lab1_vector.py                      # LUCCVectorExecutor via CLI
@@ -445,3 +450,4 @@ Distributed under the **GPL-3.0 License**. Developed by the **[LambdaGeo](https:
 ---
 
 *Built with ❤️ for the open-source environmental modeling community.* 🌱🔬
+
