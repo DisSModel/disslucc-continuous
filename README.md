@@ -1,6 +1,6 @@
-# DisSLUCC 🌍
+# DisSLUCC-Continuous 🌍
 
-> **Discrete Spatial Library for Land Use Change Modeling** — A Python implementation of LUCC modeling components, built on top of [DissModel](https://github.com/LambdaGeo/dissmodel)
+> **Continuous Spatial Library for Land Use Change Modeling** — A Python implementation of continuous LUCC modeling components (LUCCME-like), built on top of [DissModel](https://github.com/LambdaGeo/dissmodel)
 
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://python.org)
@@ -10,14 +10,14 @@
 
 ## 📖 About
 
-**DisSLUCC** is a Python library that implements spatially explicit components for Land Use and Cover Change (LUCC) modeling. It is directly inspired by the **[LUCCME](http://luccme.ccst.inpe.br)** framework and the **[TerraME](http://www.terrame.org)** environment, originally developed by the Earth System Science Center (CCST/INPE, Brazil).
+**DisSLUCC-Continuous** is a Python library that implements spatially explicit components for continuous Land Use and Cover Change (LUCC) modeling. It is directly inspired by the **[LUCCME](http://luccme.ccst.inpe.br)** framework and the **[TerraME](http://www.terrame.org)** environment, originally developed by the Earth System Science Center (CCST/INPE, Brazil).
 
-DisSLUCC runs on top of **[DissModel](https://github.com/LambdaGeo/dissmodel)**, a generic dynamic spatial modeling framework developed by the [LambdaGeo](https://github.com/LambdaGeo) research group.
+DisSLUCC-Continuous focus on **continuous** land use change (area/percentage per cell), equivalent to the LUCCME core components.
 
 | Original Ecosystem (INPE/CCST) | LambdaGeo Ecosystem | Role |
 |-------------------------------|-------------------|------|
 | **TerraME** | `dissmodel` | Generic framework for dynamic spatial modeling |
-| **LUCCME** | `DisSLUCC` | Domain-specific environment for LUCC modeling |
+| **LUCCME** | `DisSLUCC-Continuous` | Domain-specific environment for continuous LUCC modeling |
 | **TerraLib** | `geopandas`/`shapely` | Geographic data handling |
 | **FillCell** | `dissluc.io` | Cellular space preparation utilities |
 
@@ -26,12 +26,11 @@ DisSLUCC runs on top of **[DissModel](https://github.com/LambdaGeo/dissmodel)**,
 │  Original Stack (INPE/CCST)         │     │  LambdaGeo Stack                    │
 │  ┌───────────┐  ┌───────────┐       │     │  ┌───────────┐  ┌───────────┐       │
 │  │  TerraME  │→ │  LUCCME   │       │  →  │  │ DissModel │→ │  DisSLUCC │       │
-│  │(framework)│  │(LUCC dom.)│       │     │  │(framework)│  │(LUCC dom.)│       │
+│  │(framework)│  │(LUCC dom.)│       │     │  │(framework)│  │(continuous)       │
 │  └───────────┘  └───────────┘       │     │  └───────────┘  └───────────┘       │
 └─────────────────────────────────────┘     └─────────────────────────────────────┘
-```
 
-> ℹ️ **Note**: Both the Python package name and repository name are **DisSLUCC** (`dissluc` for imports).
+> ℹ️ **Note**: Both the Python package name and repository name are **DisSLUCC-Continuous** (`dissluc` for imports).
 
 ---
 
@@ -121,9 +120,9 @@ demand = DemandPreComputedValues(
 Estimates the suitability of each cell to change, based on spatial driving factors.
 
 ```python
-from dissluc import PotentialCLinearRegression, RegressionSpec
+from dissluc import PotentialLinearRegression, RegressionSpec
 
-potential = PotentialCLinearRegression(
+potential = PotentialLinearRegression(
     gdf              = gdf,
     land_use_types   = ["f", "d", "outros"],
     land_use_no_data = "outros",
@@ -144,7 +143,7 @@ potential = PotentialCLinearRegression(
 
 | Discrete | Continuous |
 |----------|-----------|
-| `PotentialDLogisticRegression` | `PotentialCLinearRegression` ✅ |
+| `PotentialDLogisticRegression` | `PotentialLinearRegression` ✅ |
 | `PotentialDNeighSimpleRule` | `PotentialCSpatialLagRegression` |
 | `PotentialDSampleBased` | `PotentialCSampleBased` |
 
@@ -186,7 +185,7 @@ DisSLUCC follows the DissModel `ModelExecutor` pattern — each executor separat
 
 ```
 Science Layer (Model / Salabim)
-  PotentialCLinearRegression, AllocationClueLike, DemandPreComputedValues
+  PotentialLinearRegression, AllocationClueLike, DemandPreComputedValues
   → only knows math, geometry and time
 
 Infrastructure Layer (ModelExecutor)
@@ -253,7 +252,7 @@ class MyLUCCExecutor(ModelExecutor):
         env    = Environment(end_time=params.get("n_steps", 7) - 1)
 
         demand    = DemandPreComputedValues(...)
-        potential = PotentialCLinearRegression(gdf=gdf, ...)
+        potential = PotentialLinearRegression(gdf=gdf, ...)
         AllocationClueLike(gdf=gdf, ...)
 
         env.run()
@@ -353,15 +352,12 @@ max_change = 1
 
 ```bash
 # Via pip
-pip install disslucc
+pip install dissluc-continuous
 
 # From source
 git clone https://github.com/LambdaGeo/DisSLUCC.git
 cd DisSLUCC
 pip install -e .
-
-# From GitHub branch (platform / dissmodel-configs)
-pip install "git+https://github.com/LambdaGeo/DisSLUCC.git@develop"
 ```
 
 **Dependencies:** `dissmodel`, `geopandas`, `shapely`, `pandas`, `numpy`, `rasterio`, `matplotlib`
