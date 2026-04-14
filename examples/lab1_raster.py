@@ -1,7 +1,7 @@
 
 
 from dissmodel.executor.cli import run_cli
-from dissluc.executor.clue_like_raster_executor import LUCCRasterExecutor
+from dissluc.infra.executors.clue_like_raster_executor import LUCCRasterExecutor
 
 
 if __name__ == "__main__":

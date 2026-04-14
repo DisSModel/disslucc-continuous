@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 import numpy as np
 
-from dissluc.schemas import RegressionSpec
+from dissluc.common.schemas import RegressionSpec
 
 from dissmodel.geo import SyncRasterModel
 

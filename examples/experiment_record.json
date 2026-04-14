@@ -1,6 +1,6 @@
 {
-  "experiment_id": "4eadf928546843d8ad0c49e29eeb4758",
-  "created_at": "2026-04-14T16:37:54.194973",
+  "experiment_id": "0c11177b767045c8a722dbc1ba4f24f0",
+  "created_at": "2026-04-14T17:02:20.195314",
   "model_name": "local",
   "model_commit": "local-cli",
   "code_version": "dev",
@@ -115,24 +115,24 @@
     "complementar_lu": "f",
     "cell_area": 25.0
   },
-  "output_path": "local_output.gpkg",
+  "output_path": "local_output.tif",
   "artifacts": {
-    "output": "2b4f9aa1e34fc036676c05e6d33543eef0a918c988e3f46bb931a4a1a66c5749",
-    "profiling": "a1f3b00756132660df4aead4c04e7facda3072e6a989c14980aa8d789c70c61a"
+    "output": "1059f63656be4f149ae34ce5b351ca97d69a6627d90ed1756af146d5b0eca573",
+    "profiling": "a4769ef3b45e6c9cea578a3e679733ed5fb83a655fd556b5174bdff01b10eccf"
   },
   "metrics": {
     "time_validate_sec": 0.0,
-    "time_load_sec": 0.256,
-    "time_run_sec": 1.237,
-    "time_save_sec": 3.253,
-    "time_total_sec": 4.746
+    "time_load_sec": 5.691,
+    "time_run_sec": 0.373,
+    "time_save_sec": 0.015,
+    "time_total_sec": 6.079
   },
   "status": "completed",
   "logs": [
-    "Loaded GDF: 6574 features  crs=EPSG:29101",
+    "Rasterized: shape=(89, 165) valid=6,574 cells",
     "Running 7 steps...",
     "Simulation complete",
-    "Saved to local_output.gpkg",
-    "Saved profiling artifact → ./profiling_4eadf928.md"
+    "Saved to local_output.tif",
+    "Saved profiling artifact → ./profiling_0c11177b.md"
   ]
 }

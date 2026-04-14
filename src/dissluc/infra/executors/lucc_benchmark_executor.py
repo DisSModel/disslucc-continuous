@@ -23,11 +23,11 @@ from dissmodel.io._utils import write_bytes, write_text
 from dissmodel.executor.config import settings
 
 from dissluc import DemandPreComputedValues, load_demand_csv
-from dissluc.vector import PotentialLinearRegression as VecPotential
-from dissluc.vector import AllocationClueLike        as VecAllocation
-from dissluc.raster import PotentialLinearRegression as RasPotential
-from dissluc.raster import AllocationClueLike        as RasAllocation
-from dissluc.schemas import RegressionSpec, AllocationSpec
+from dissluc.components.potential.vector import PotentialLinearRegression as VecPotential
+from dissluc.components.allocation.vector import AllocationClueLike        as VecAllocation
+from dissluc.components.potential.raster import PotentialLinearRegression as RasPotential
+from dissluc.components.allocation.raster import AllocationClueLike        as RasAllocation
+from dissluc.common.schemas import RegressionSpec, AllocationSpec
 
 # ── Defaults do Lab1 ──────────────────────────────────────────────────────────
 

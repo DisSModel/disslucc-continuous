@@ -62,7 +62,7 @@ python lab1_raster.py run \
 python lab1_raster.py validate --input data/input/csAC.zip
 
 # Run the Benchmark suite (Vector vs Raster vs TerraME/LUCCME comparison)
-python -m dissluc.executor.lucc_benchmark_executor run \
+python -m dissluc.infra.executors.lucc_benchmark_executor run \
   --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
   --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
@@ -206,7 +206,7 @@ Infrastructure Layer (ModelExecutor)
 The `LUCCBenchmarkExecutor` is a meta-executor that runs vector and raster substrates in a single pass and compares both against a TerraME/LUCCME reference result. It generates a Markdown report and scatter plots — the primary tool for validating numerical equivalence before publishing results.
 
 ```bash
-python -m dissluc.executor.lucc_benchmark_executor run \
+python -m dissluc.infra.executors.lucc_benchmark_executor run \
   --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
   --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
@@ -367,42 +367,31 @@ pip install -e .
 ## 🗂️ Project Structure
 
 ```
-DisSLUCC/
+DisSLUCC-Continuous/
 ├── src/dissluc/
-│   ├── __init__.py
-│   ├── core.py
-│   ├── schemas.py                          # RegressionSpec, AllocationSpec
-│   ├── executor/                           # ModelExecutor implementations
-│   │   ├── __init__.py
-│   │   ├── clue_like_raster_executor.py    # RasterBackend/NumPy substrate
-│   │   ├── clue_like_vector_executor.py    # GeoDataFrame substrate
-│   │   └── lucc_benchmark_executor.py      # Vector vs Raster vs TerraME comparison
-│   ├── raster/                             # Raster model components
-│   │   ├── __init__.py
+│   ├── __init__.py          # Main facade (exports models and schemas)
+│   ├── components/          # Science Layer (Models)
+│   │   ├── demand/
 │   │   ├── potential/
-│   │   │   └── linear.py
+│   │   │   ├── raster/
+│   │   │   └── vector/
 │   │   └── allocation/
-│   │       └── clue.py
-│   ├── vector/                             # Vector model components
-│   │   ├── __init__.py
-│   │   ├── potential/
-│   │   │   └── linear.py
-│   │   └── allocation/
-│   │       └── clue.py
-│   └── demand/                             # Demand components
-│       ├── __init__.py
-│       └── precomputed.py
+│   │       ├── raster/
+│   │       └── vector/
+│   ├── infra/               # Infrastructure Layer (Executors)
+│   │   └── executors/
+│   │       ├── clue_like_raster_executor.py
+│   │       ├── clue_like_vector_executor.py
+│   │       └── lucc_benchmark_executor.py
+│   └── common/              # Common Layer (Schemas and Protocols)
+│       ├── schemas.py       # RegressionSpec, AllocationSpec
+│       └── protocols.py     # Component interfaces
 ├── examples/
-│   ├── lab1_raster.py                      # LUCCRasterExecutor via CLI
-│   ├── lab1_vector.py                      # LUCCVectorExecutor via CLI
-│   ├── model.toml                          # Calibrated coefficients for Lab1
-│   └── data/
-│       ├── input/csAC.zip
-│       └── output/
+│   ├── lab1_raster.py
+│   ├── lab1_vector.py
+│   └── ...
 ├── benchmark/
-│   └── data/LUCCME_Lab1_2014.zip           # TerraME/LUCCME reference results
-├── docs/
-└── tests/
+└── ...
 ```
 
 ---
