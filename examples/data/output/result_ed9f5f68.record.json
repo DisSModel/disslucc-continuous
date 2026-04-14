@@ -1,0 +1,139 @@
+{
+  "experiment_id": "ed9f5f683e24469ca3a22082dc7cf054",
+  "created_at": "2026-04-14T11:15:02.577711",
+  "model_name": "local",
+  "model_commit": "local-cli",
+  "code_version": "dev",
+  "resolved_spec": {
+    "model": {
+      "parameters": {
+        "resolution": 5000.0,
+        "n_steps": 7,
+        "demand_csv": "data/input/examples_demand_lab1.csv",
+        "land_use_types": [
+          "f",
+          "d",
+          "outros"
+        ],
+        "land_use_no_data": "outros",
+        "complementar_lu": "f",
+        "cell_area": 25.0
+      },
+      "driver_columns": {
+        "cols": [
+          "assentamen",
+          "uc_us",
+          "uc_pi",
+          "ti",
+          "dist_riobr",
+          "fertilidad",
+          "rodovias"
+        ]
+      },
+      "static": {
+        "f": -1,
+        "d": -1,
+        "outros": 1
+      },
+      "potential": [
+        {
+          "lu": "f",
+          "const": 0.7392,
+          "betas": {
+            "assentamen": -0.2193,
+            "uc_us": 0.1754,
+            "uc_pi": 0.09708,
+            "ti": 0.1207,
+            "dist_riobr": 2.388e-7,
+            "fertilidad": -0.1313
+          }
+        },
+        {
+          "lu": "d",
+          "const": 0.267,
+          "betas": {
+            "rodovias": -9.922e-7,
+            "assentamen": 0.2294,
+            "uc_us": -0.09867,
+            "dist_riobr": -3.216e-7,
+            "fertilidad": 0.1281
+          }
+        },
+        {
+          "lu": "outros",
+          "const": 0.0
+        }
+      ],
+      "allocation": [
+        {
+          "lu": "f",
+          "static": -1,
+          "min_value": 0,
+          "max_value": 1,
+          "min_change": 0,
+          "max_change": 1
+        },
+        {
+          "lu": "d",
+          "static": -1,
+          "min_value": 0,
+          "max_value": 1,
+          "min_change": 0,
+          "max_change": 1
+        },
+        {
+          "lu": "outros",
+          "static": 1,
+          "min_value": 0,
+          "max_value": 1,
+          "min_change": 0,
+          "max_change": 1
+        }
+      ]
+    }
+  },
+  "source": {
+    "type": "local",
+    "uri": "data/input/csAC.zip",
+    "collection": "",
+    "version": "",
+    "checksum": "dc659e611cb082bc40a2acbac8ec816cbaff66bf5c97f4940abe8c7c3c91a6eb"
+  },
+  "input_format": "auto",
+  "column_map": {},
+  "band_map": {},
+  "parameters": {
+    "resolution": 5000.0,
+    "n_steps": 7,
+    "demand_csv": "data/input/examples_demand_lab1.csv",
+    "land_use_types": [
+      "f",
+      "d",
+      "outros"
+    ],
+    "land_use_no_data": "outros",
+    "complementar_lu": "f",
+    "cell_area": 25.0,
+    "interactive": true
+  },
+  "output_path": "data/output/result_ed9f5f68.tif",
+  "artifacts": {
+    "output": "1059f63656be4f149ae34ce5b351ca97d69a6627d90ed1756af146d5b0eca573",
+    "profiling": "0d7a9735e7b6aa669839347283c1563356360905c688e39b71f072f56a99d10c"
+  },
+  "metrics": {
+    "time_validate_sec": 0.0,
+    "time_load_sec": 6.38,
+    "time_run_sec": 9.633,
+    "time_save_sec": 0.035,
+    "time_total_sec": 16.047
+  },
+  "status": "completed",
+  "logs": [
+    "Rasterized: shape=(89, 165) valid=6,574 cells",
+    "Running 7 steps...",
+    "Simulation complete",
+    "Saved to data/output/result_ed9f5f68.tif",
+    "Saved profiling artifact → data/output/profiling_ed9f5f68.md"
+  ]
+}

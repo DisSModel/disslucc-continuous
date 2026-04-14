@@ -1,6 +1,6 @@
-# DisSLUCC 🌍
+# DisSLUCC-Continuous 🌍
 
-> **Discrete Spatial Library for Land Use Change Modeling** — A Python implementation of LUCC modeling components, built on top of [DissModel](https://github.com/LambdaGeo/dissmodel)
+> **Continuous Spatial Library for Land Use Change Modeling** — A Python implementation of continuous LUCC modeling components (LUCCME-like), built on top of [DissModel](https://github.com/LambdaGeo/dissmodel)
 
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://python.org)
@@ -10,14 +10,14 @@
 
 ## 📖 About
 
-**DisSLUCC** is a Python library that implements spatially explicit components for Land Use and Cover Change (LUCC) modeling. It is directly inspired by the **[LUCCME](http://luccme.ccst.inpe.br)** framework and the **[TerraME](http://www.terrame.org)** environment, originally developed by the Earth System Science Center (CCST/INPE, Brazil).
+**DisSLUCC-Continuous** is a Python library that implements spatially explicit components for continuous Land Use and Cover Change (LUCC) modeling. It is directly inspired by the **[LUCCME](http://luccme.ccst.inpe.br)** framework and the **[TerraME](http://www.terrame.org)** environment, originally developed by the Earth System Science Center (CCST/INPE, Brazil).
 
-DisSLUCC runs on top of **[DissModel](https://github.com/LambdaGeo/dissmodel)**, a generic dynamic spatial modeling framework developed by the [LambdaGeo](https://github.com/LambdaGeo) research group.
+DisSLUCC-Continuous focus on **continuous** land use change (area/percentage per cell), equivalent to the LUCCME core components.
 
 | Original Ecosystem (INPE/CCST) | LambdaGeo Ecosystem | Role |
 |-------------------------------|-------------------|------|
 | **TerraME** | `dissmodel` | Generic framework for dynamic spatial modeling |
-| **LUCCME** | `DisSLUCC` | Domain-specific environment for LUCC modeling |
+| **LUCCME** | `DisSLUCC-Continuous` | Domain-specific environment for continuous LUCC modeling |
 | **TerraLib** | `geopandas`/`shapely` | Geographic data handling |
 | **FillCell** | `dissluc.io` | Cellular space preparation utilities |
 
@@ -26,26 +26,13 @@ DisSLUCC runs on top of **[DissModel](https://github.com/LambdaGeo/dissmodel)**,
 │  Original Stack (INPE/CCST)         │     │  LambdaGeo Stack                    │
 │  ┌───────────┐  ┌───────────┐       │     │  ┌───────────┐  ┌───────────┐       │
 │  │  TerraME  │→ │  LUCCME   │       │  →  │  │ DissModel │→ │  DisSLUCC │       │
-│  │(framework)│  │(LUCC dom.)│       │     │  │(framework)│  │(LUCC dom.)│       │
+│  │(framework)│  │(LUCC dom.)│       │     │  │(framework)│  │(continuous)       │
 │  └───────────┘  └───────────┘       │     │  └───────────┘  └───────────┘       │
 └─────────────────────────────────────┘     └─────────────────────────────────────┘
-```
 
-> ℹ️ **Note**: Both the Python package name and repository name are **DisSLUCC** (`dissluc` for imports).
-
----
-
-### 📝 English Chunk of the Day
-Quando você tem um trecho de código ou texto que pode substituir uma versão antiga perfeitamente, sem precisar alterar mais nada ao redor, chamamos isso de **"Drop-in replacement"** (uma substituição direta/imediata).
-* **Exemplo:** *"You can copy this updated block and use it as a **drop-in replacement** for the old Quick Start section."*
+> ℹ️ **Note**: Both the Python package name and repository name are **DisSLUCC-Continuous** (`dissluc` for imports).
 
 ---
-
-Entendido! Aqui está o bloco `## 🚀 Quick Start` atualizado. 
-
-Eu mantive os seus comandos originais de desenvolvimento (incluindo o `validate` que checa o contrato de dados do executor) e inseri o nosso novo **Benchmark** na posição ideal para fechar a seção de CLI local com chave de ouro.
-
-Pode usar este bloco como um *drop-in replacement* no seu `README.md`:
 
 ## 🚀 Quick Start
 
@@ -74,14 +61,14 @@ python lab1_raster.py run \
 # Validate executor data contract without running
 python lab1_raster.py validate --input data/input/csAC.zip
 
-# Run the Benchmark suite (Vector vs Raster vs TerraME comparison)
-python -m dissluc.executor.lucc_benchmark_executor run \
-  --input examples/data/input/csAC.zip \
+# Run the Benchmark suite (Vector vs Raster vs TerraME/LUCCME comparison)
+python -m dissluc.infra.executors.lucc_benchmark_executor run \
+  --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
-  --param demand_csv=examples/data/input/examples_demand_lab1.csv \
-  --param terrame_reference=benchmark/data/LUCCME_Lab1_2014.zip \
-  --param n_steps=6 \
-  --param tolerance=0.01
+  --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
+  --param  terrame_reference=benchmark/data/LUCCME_Lab1_2014.zip \
+  --param  n_steps=6 \
+  --param  tolerance=0.01
 
 # Show resolved parameters
 python lab1_raster.py show --toml examples/model.toml
@@ -133,9 +120,9 @@ demand = DemandPreComputedValues(
 Estimates the suitability of each cell to change, based on spatial driving factors.
 
 ```python
-from dissluc import PotentialCLinearRegression, RegressionSpec
+from dissluc import PotentialLinearRegression, RegressionSpec
 
-potential = PotentialCLinearRegression(
+potential = PotentialLinearRegression(
     gdf              = gdf,
     land_use_types   = ["f", "d", "outros"],
     land_use_no_data = "outros",
@@ -156,7 +143,7 @@ potential = PotentialCLinearRegression(
 
 | Discrete | Continuous |
 |----------|-----------|
-| `PotentialDLogisticRegression` | `PotentialCLinearRegression` ✅ |
+| `PotentialDLogisticRegression` | `PotentialLinearRegression` ✅ |
 | `PotentialDNeighSimpleRule` | `PotentialCSpatialLagRegression` |
 | `PotentialDSampleBased` | `PotentialCSampleBased` |
 
@@ -165,9 +152,9 @@ potential = PotentialCLinearRegression(
 Spatially distributes changes based on demand and cell-level potential.
 
 ```python
-from dissluc import AllocationCClueLike, AllocationSpec
+from dissluc import AllocationClueLike, AllocationSpec
 
-AllocationCClueLike(
+AllocationClueLike(
     gdf             = gdf,
     demand          = demand,
     potential       = potential,
@@ -187,8 +174,8 @@ AllocationCClueLike(
 
 | Discrete | Continuous |
 |----------|-----------|
-| `AllocationDClueSLike` | `AllocationCClueLike` ✅ |
-| `AllocationDSimpleOrdering` | `AllocationCClueLikeSaturation` |
+| `AllocationDClueSLike` | `AllocationClueLike` ✅ |
+| `AllocationDSimpleOrdering` | `AllocationClueLikeSaturation` |
 
 ---
 
@@ -197,21 +184,43 @@ AllocationCClueLike(
 DisSLUCC follows the DissModel `ModelExecutor` pattern — each executor separates science from infrastructure. The same model runs locally via CLI or on the platform via API without changing a single line.
 
 ```
-Camada de Ciência (Model / Salabim)
-  PotentialCLinearRegression, AllocationCClueLike, DemandPreComputedValues
+Science Layer (Model / Salabim)
+  PotentialLinearRegression, AllocationClueLike, DemandPreComputedValues
   → only knows math, geometry and time
 
-Camada de Infraestrutura (ModelExecutor)
-  LUCCRasterExecutor, LUCCVectorExecutor
+Infrastructure Layer (ModelExecutor)
+  LUCCRasterExecutor, LUCCVectorExecutor, LUCCBenchmarkExecutor
   → only knows URIs, MinIO, column_map, parameters
 ```
 
 ### Executors available
 
-| name | Substrate | Input → Output |
-|------|-----------|----------------|
-| `lucc_raster` | RasterBackend / NumPy | Shapefile → GeoTIFF |
-| `lucc_vector` | GeoDataFrame | Shapefile → GeoPackage |
+| name | Substrate | Input → Output | Description |
+|------|-----------|----------------|-------------|
+| `lucc_raster` | RasterBackend / NumPy | Shapefile → GeoTIFF | Production raster simulation |
+| `lucc_vector` | GeoDataFrame | Shapefile → GeoPackage | Production vector simulation |
+| `lucc_benchmark` | Both | Shapefile → MD + PNG | Vector vs Raster vs TerraME comparison |
+
+### Benchmark executor
+
+The `LUCCBenchmarkExecutor` is a meta-executor that runs vector and raster substrates in a single pass and compares both against a TerraME/LUCCME reference result. It generates a Markdown report and scatter plots — the primary tool for validating numerical equivalence before publishing results.
+
+```bash
+python -m dissluc.infra.executors.lucc_benchmark_executor run \
+  --input  examples/data/input/csAC.zip \
+  --output ./benchmark/ \
+  --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
+  --param  terrame_reference=benchmark/data/LUCCME_Lab1_2014.zip \
+  --param  n_steps=6 \
+  --param  tolerance=0.01
+```
+
+Output:
+```
+benchmark/
+  report.md    ← runtime comparison + accuracy metrics (match %, MAE, RMSE) per substrate and band
+  scatter.png  ← scatter plots: Vector vs Raster vs TerraME for each land-use band
+```
 
 ### Implementing a custom executor
 
@@ -220,7 +229,6 @@ Camada de Infraestrutura (ModelExecutor)
 from dissmodel.executor     import ExperimentRecord, ModelExecutor
 from dissmodel.executor.cli import run_cli
 from dissmodel.io           import load_dataset, save_dataset
-from dissmodel.io.convert   import vector_to_raster_backend
 
 
 class MyLUCCExecutor(ModelExecutor):
@@ -236,17 +244,16 @@ class MyLUCCExecutor(ModelExecutor):
     def run(self, record: ExperimentRecord):
         from dissmodel.core import Environment
         from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.vector.potential.continuous.linear import PotentialCLinearRegression
-        from dissluc.vector.allocation.continuous.clue  import AllocationCClueLike
+        from dissluc.vector.potential.linear import PotentialLinearRegression
+        from dissluc.vector.allocation.clue  import AllocationClueLike
 
-        spec   = record.resolved_spec.get("model", {})
         params = record.parameters
         gdf    = self.load(record)
         env    = Environment(end_time=params.get("n_steps", 7) - 1)
 
         demand    = DemandPreComputedValues(...)
-        potential = PotentialCLinearRegression(gdf=gdf, ...)
-        AllocationCClueLike(gdf=gdf, ...)
+        potential = PotentialLinearRegression(gdf=gdf, ...)
+        AllocationClueLike(gdf=gdf, ...)
 
         env.run()
         return gdf
@@ -315,16 +322,28 @@ lu    = "outros"
 const = 0.0
 
 [[model.allocation]]
-lu = "f"
-static = -1  min_value = 0  max_value = 1  min_change = 0  max_change = 1
+lu         = "f"
+static     = -1
+min_value  = 0
+max_value  = 1
+min_change = 0
+max_change = 1
 
 [[model.allocation]]
-lu = "d"
-static = -1  min_value = 0  max_value = 1  min_change = 0  max_change = 1
+lu         = "d"
+static     = -1
+min_value  = 0
+max_value  = 1
+min_change = 0
+max_change = 1
 
 [[model.allocation]]
-lu = "outros"
-static = 1   min_value = 0  max_value = 1  min_change = 0  max_change = 1
+lu         = "outros"
+static     = 1
+min_value  = 0
+max_value  = 1
+min_change = 0
+max_change = 1
 ```
 
 ---
@@ -333,15 +352,12 @@ static = 1   min_value = 0  max_value = 1  min_change = 0  max_change = 1
 
 ```bash
 # Via pip
-pip install disslucc
+pip install dissluc-continuous
 
 # From source
 git clone https://github.com/LambdaGeo/DisSLUCC.git
 cd DisSLUCC
 pip install -e .
-
-# From GitHub branch (platform / dissmodel-configs)
-pip install "git+https://github.com/LambdaGeo/DisSLUCC.git@develop"
 ```
 
 **Dependencies:** `dissmodel`, `geopandas`, `shapely`, `pandas`, `numpy`, `rasterio`, `matplotlib`
@@ -351,34 +367,31 @@ pip install "git+https://github.com/LambdaGeo/DisSLUCC.git@develop"
 ## 🗂️ Project Structure
 
 ```
-DisSLUCC/
-├── dissluc/
-│   ├── __init__.py
-│   ├── executor/                    # ModelExecutor implementations
-│   │   ├── __init__.py              # imports executors → auto-registration
-│   │   ├── lucc_raster_executor.py  # RasterBackend/NumPy substrate
-│   │   └── lucc_vector_executor.py  # GeoDataFrame substrate
-│   ├── raster/                      # Raster model components
-│   │   ├── potential/continuous/linear.py
-│   │   └── allocation/continuous/clue.py
-│   ├── vector/                      # Vector model components
-│   │   ├── potential/continuous/linear.py
-│   │   └── allocation/continuous/clue.py
-│   ├── demand/                      # Demand components
-│   │   └── precomputed.py
-│   ├── io/                          # Cellular space utilities
-│   │   └── operators.py
-│   ├── schemas.py                   # RegressionSpec, AllocationSpec
-│   └── validation/                  # Costanza, Kappa metrics
+DisSLUCC-Continuous/
+├── src/dissluc/
+│   ├── __init__.py          # Main facade (exports models and schemas)
+│   ├── components/          # Science Layer (Models)
+│   │   ├── demand/
+│   │   ├── potential/
+│   │   │   ├── raster/
+│   │   │   └── vector/
+│   │   └── allocation/
+│   │       ├── raster/
+│   │       └── vector/
+│   ├── infra/               # Infrastructure Layer (Executors)
+│   │   └── executors/
+│   │       ├── clue_like_raster_executor.py
+│   │       ├── clue_like_vector_executor.py
+│   │       └── lucc_benchmark_executor.py
+│   └── common/              # Common Layer (Schemas and Protocols)
+│       ├── schemas.py       # RegressionSpec, AllocationSpec
+│       └── protocols.py     # Component interfaces
 ├── examples/
-│   ├── lab1_raster.py               # LUCCRasterExecutor via CLI
-│   ├── lab1_vector.py               # LUCCVectorExecutor via CLI
-│   ├── model.toml                   # Calibrated coefficients for Lab1
-│   └── data/
-│       ├── input/csAC.zip
-│       └── output/
-├── docs/
-└── tests/
+│   ├── lab1_raster.py
+│   ├── lab1_vector.py
+│   └── ...
+├── benchmark/
+└── ...
 ```
 
 ---
@@ -389,7 +402,8 @@ DisSLUCC/
 2. **Transparency** — Regression coefficients and allocation rules are explicit in TOML, version-controlled.
 3. **Reproducibility** — Each experiment records model commit, input checksum, and resolved spec via `ExperimentRecord`.
 4. **Two substrates** — Same algorithms available for vector (GeoDataFrame) and raster (RasterBackend/NumPy).
-5. **Executor pattern** — Science layer (models) never knows about files, URIs or cloud; infrastructure layer (executors) never calculates spatial equations.
+5. **Executor pattern** — Science layer never knows about files or cloud; infrastructure layer never calculates spatial equations.
+6. **Benchmark-first validation** — `lucc_benchmark` validates numerical equivalence between substrates and against TerraME/LUCCME reference results before any production use.
 
 ---
 
@@ -421,3 +435,4 @@ Distributed under the **GPL-3.0 License**. Developed by the **[LambdaGeo](https:
 ---
 
 *Built with ❤️ for the open-source environmental modeling community.* 🌱🔬
+

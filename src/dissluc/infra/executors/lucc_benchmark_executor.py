@@ -23,11 +23,11 @@ from dissmodel.io._utils import write_bytes, write_text
 from dissmodel.executor.config import settings
 
 from dissluc import DemandPreComputedValues, load_demand_csv
-from dissluc.modules.vector.potential.continuous.linear import PotentialCLinearRegression as VecPotential
-from dissluc.modules.vector.allocation.continuous.clue  import AllocationCClueLike        as VecAllocation
-from dissluc.modules.raster.potential.continuous.linear import PotentialCLinearRegression as RasPotential
-from dissluc.modules.raster.allocation.continuous.clue  import AllocationCClueLike        as RasAllocation
-from dissluc.modules.schemas import RegressionSpec, AllocationSpec
+from dissluc.components.potential.vector import PotentialLinearRegression as VecPotential
+from dissluc.components.allocation.vector import AllocationClueLike        as VecAllocation
+from dissluc.components.potential.raster import PotentialLinearRegression as RasPotential
+from dissluc.components.allocation.raster import AllocationClueLike        as RasAllocation
+from dissluc.common.schemas import RegressionSpec, AllocationSpec
 
 # ── Defaults do Lab1 ──────────────────────────────────────────────────────────
 
@@ -58,7 +58,7 @@ class LuccBenchmarkExecutor(ModelExecutor):
     """
     Validation executor for CLUE-like LUCC modeling (Lab1).
     Compares Vector execution, Raster execution, and a TerraME reference dataset.
-    
+
     Expected parameters:
     - n_steps (int): defaults to 7
     - tolerance (float): defaults to 0.01
@@ -72,40 +72,47 @@ class LuccBenchmarkExecutor(ModelExecutor):
     # ── public contract ───────────────────────────────────────────────────────
 
     def load(self, record: ExperimentRecord) -> tuple[gpd.GeoDataFrame, pd.DataFrame]:
-        # 1. Carrega o input principal (Shapefile)
+        # Load main input (Shapefile)
         gdf, checksum = load_dataset(record.source.uri, fmt="vector")
         record.source.checksum = checksum
 
         if record.column_map:
             gdf = gdf.rename(columns={v: k for k, v in record.column_map.items()})
 
-        # 2. Carrega a referência do TerraME via path passado nos parâmetros
+        # Load TerraME reference via path passed in parameters
         terrame_uri = record.parameters.get("terrame_reference")
         terrame_df  = _load_terrame(pathlib.Path(terrame_uri))
-        
+
         record.add_log(f"Loaded Shapefile: {len(gdf)} cells")
         record.add_log(f"Loaded TerraME Ref: {len(terrame_df)} cells")
-        
+
         return gdf, terrame_df
 
     def validate(self, record: ExperimentRecord) -> None:
         if not record.source.uri:
             raise ValueError("source.uri is empty — pass the main shapefile.")
-        
+
         if "terrame_reference" not in record.parameters:
             raise ValueError("Missing 'terrame_reference' parameter (path to TerraME ZIP).")
-            
+
         if "demand_csv" not in record.parameters:
             raise ValueError("Missing 'demand_csv' parameter.")
 
-    def run(self, record: ExperimentRecord) -> dict:
+    def run(self, data: tuple[gpd.GeoDataFrame, pd.DataFrame], record: ExperimentRecord) -> dict:
+        """
+        Run Vector and Raster models, then compare against TerraME reference.
+
+        `data` is the (gdf, terrame_df) tuple returned by load(), injected
+        by the platform. No I/O happens here.
+        """
         params     = record.parameters
         n_steps    = params.get("n_steps", 7)
         tolerance  = params.get("tolerance", 0.01)
         cell_area  = params.get("cell_area", 25.0)
         demand_csv = params.get("demand_csv")
 
-        gdf_orig, terrame_df = self.load(record)
+        # data injected by execute_lifecycle — no I/O here
+        gdf_orig, terrame_df = data
 
         # ── vector run ────────────────────────────────────────────────────────
         record.add_log(f"Running Vector Model ({n_steps} steps)...")
@@ -125,8 +132,8 @@ class LuccBenchmarkExecutor(ModelExecutor):
             complementar_lu="f", cell_area=cell_area,
             allocation_data=ALLOCATION_DATA,
         )
-        
-        t0 = time.perf_counter()
+
+        t0     = time.perf_counter()
         env_vec.run()
         vec_ms = (time.perf_counter() - t0) * 1000 / n_steps
         record.add_log(f"Vector done: {vec_ms:.1f} ms/step")
@@ -150,23 +157,23 @@ class LuccBenchmarkExecutor(ModelExecutor):
             allocation_data=ALLOCATION_DATA,
         )
 
-        t0 = time.perf_counter()
+        t0     = time.perf_counter()
         env_ras.run()
         ras_ms = (time.perf_counter() - t0) * 1000 / n_steps
         record.add_log(f"Raster done: {ras_ms:.1f} ms/step")
 
         # ── alignment & metrics ───────────────────────────────────────────────
         record.add_log("Calculating metrics...")
-        
+
         vec_indexed = pd.Series(
             gdf_vec["d"].values,
             index=pd.MultiIndex.from_arrays([rows, cols], names=["row", "col"]),
-            name="d_vec"
+            name="d_vec",
         )
         ras_indexed = pd.Series(
             backend.get("d")[rows, cols].astype(float),
             index=pd.MultiIndex.from_arrays([rows, cols], names=["row", "col"]),
-            name="d_raster"
+            name="d_raster",
         )
 
         df_vt = vec_indexed.to_frame().join(terrame_df["d_out"], how="inner")
@@ -187,14 +194,14 @@ class LuccBenchmarkExecutor(ModelExecutor):
         # ── scatter plots (in-memory) ─────────────────────────────────────────
         record.add_log("Generating artifacts...")
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-        
-        _scatter(axes[0], df_vt["d_vec"], df_vt["d_out"], "Vector d", "TerraME d_out", "Vector vs TerraME", m_vt)
-        _scatter(axes[1], df_rt["d_raster"], df_rt["d_out"], "Raster d", "TerraME d_out", "Raster vs TerraME", m_rt)
-        _scatter(axes[2], df_vr["d_vec"], df_vr["d_raster"], "Vector d", "Raster d", "Vector vs Raster", m_vr)
-        
+
+        _scatter(axes[0], df_vt["d_vec"],     df_vt["d_out"],     "Vector d",  "TerraME d_out", "Vector vs TerraME", m_vt)
+        _scatter(axes[1], df_rt["d_raster"],  df_rt["d_out"],     "Raster d",  "TerraME d_out", "Raster vs TerraME", m_rt)
+        _scatter(axes[2], df_vr["d_vec"],     df_vr["d_raster"],  "Vector d",  "Raster d",      "Vector vs Raster",  m_vr)
+
         plt.suptitle(f"Lab1 — 'd' (deforestation) at step {n_steps}", fontsize=11)
         plt.tight_layout()
-        
+
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=150)
         plt.close()
@@ -212,10 +219,12 @@ class LuccBenchmarkExecutor(ModelExecutor):
         )
 
         record.add_artifact(
-            "plot", write_bytes(result["plot_buf"], f"{base_uri}/scatter.png", content_type="image/png")
+            "plot",
+            write_bytes(result["plot_buf"], f"{base_uri}/scatter.png", content_type="image/png"),
         )
         record.add_artifact(
-            "report", write_text(result["report_str"], f"{base_uri}/report.md", content_type="text/markdown")
+            "report",
+            write_text(result["report_str"], f"{base_uri}/report.md", content_type="text/markdown"),
         )
 
         record.output_path = base_uri
@@ -237,6 +246,7 @@ def _metrics(a: np.ndarray, b: np.ndarray, tol: float) -> dict:
         "n_cells":   len(a),
     }
 
+
 def _scatter(ax, x, y, xlabel, ylabel, title, m):
     ax.scatter(x, y, alpha=0.3, s=4, color="steelblue")
     lim = max(float(np.max(x)), float(np.max(y))) * 1.05
@@ -244,13 +254,17 @@ def _scatter(ax, x, y, xlabel, ylabel, title, m):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.text(0.05, 0.88,
-            f"Match={m['match_pct']:.1f}%\nMAE={m['mae']:.5f}\nRMSE={m['rmse']:.5f}",
-            transform=ax.transAxes, fontsize=7,
-            bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5))
+    ax.text(
+        0.05, 0.88,
+        f"Match={m['match_pct']:.1f}%\nMAE={m['mae']:.5f}\nRMSE={m['rmse']:.5f}",
+        transform = ax.transAxes,
+        fontsize  = 7,
+        bbox      = dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+    )
+
 
 def _build_mock_raster(gdf: gpd.GeoDataFrame) -> tuple[RasterBackend, np.ndarray, np.ndarray]:
-    driver_cols = ["assentamen","uc_us","uc_pi","ti","dist_riobr","fertilidad","rodovias"]
+    driver_cols = ["assentamen", "uc_us", "uc_pi", "ti", "dist_riobr", "fertilidad", "rodovias"]
     all_cols    = LAND_USE_TYPES + driver_cols
 
     rows   = gdf["row"].astype(int).values
@@ -273,6 +287,7 @@ def _build_mock_raster(gdf: gpd.GeoDataFrame) -> tuple[RasterBackend, np.ndarray
         backend.set(col, arr)
 
     return backend, rows, cols
+
 
 def _load_terrame(path: pathlib.Path) -> pd.DataFrame:
     with zipfile.ZipFile(path) as z:
@@ -308,6 +323,7 @@ def _load_terrame(path: pathlib.Path) -> pd.DataFrame:
     df["row"] = df["row"].astype(int)
     df["col"] = df["col"].astype(int)
     return df.set_index(["row", "col"])
+
 
 def _build_markdown(n_steps: int, tol: float, vec_ms: float, ras_ms: float, metrics: dict) -> str:
     lines = [

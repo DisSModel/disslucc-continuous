@@ -1,18 +1,18 @@
 """
-dissluc/raster/potential/continuous/linear.py
-----------------------------------------------
-Raster version of PotentialCLinearRegression.
+dissluc/raster/potential/linear.py
+----------------------------------
+Raster version of PotentialLinearRegression.
 Operates on RasterBackend arrays instead of GeoDataFrame columns.
 """
 from __future__ import annotations
 import math
 import numpy as np
 
-from dissluc.modules.schemas import RegressionSpec
+from dissluc.common.schemas import RegressionSpec
 
 from dissmodel.geo import SyncRasterModel
 
-class PotentialCLinearRegression(SyncRasterModel):
+class PotentialLinearRegression(SyncRasterModel):
     """
     Raster potential via linear regression (Verburg et al. 1999).
 

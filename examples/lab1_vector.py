@@ -1,6 +1,6 @@
 
 from dissmodel.executor.cli import run_cli
-from dissluc.executor.clue_like_vector_executor import LUCCVectorExecutor
+from dissluc.infra.executors.clue_like_vector_executor import LUCCVectorExecutor
 
 
 

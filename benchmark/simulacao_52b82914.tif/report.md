@@ -6,8 +6,8 @@
 
 | Substrate | ms/step | Speedup |
 |---|---|---|
-| Vector | 145.0 | 1× |
-| Raster | 38.8 | 3.7× |
+| Vector | 143.2 | 1× |
+| Raster | 39.9 | 3.6× |
 
 ## Accuracy — `d`
 

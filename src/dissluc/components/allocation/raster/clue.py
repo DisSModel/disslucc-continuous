@@ -1,28 +1,18 @@
 """
-dissluc/raster/allocation/continuous/clue.py
----------------------------------------------
-Raster version of AllocationCClueLike.
+dissluc/raster/allocation/clue.py
+----------------------------------
+Raster version of AllocationClueLike.
 All cell operations are fully vectorized with NumPy — no per-cell loops.
-
-Fixes vs previous version
---------------------------
-1. _apply_complementar  — respects mask: out-of-extent cells keep their
-                          original value instead of being set to 1.0.
-2. _correct_cell_change — write-back now uses flat_mask so out-of-extent
-                          cells are never overwritten.
-3. Both fixes together prevent nodata cells (value=-1) from contaminating
-   the redistribution logic and distorting elasticity at every step.
 """
 from __future__ import annotations
 import numpy as np
 
-from dissluc.modules.schemas import AllocationSpec
-
+from dissluc.common.schemas import AllocationSpec
 from dissmodel.geo import SyncRasterModel
 
-class AllocationCClueLike(SyncRasterModel):
+class AllocationClueLike(SyncRasterModel):
     """
-    Raster C-CLUE allocation (Verburg et al. 1999).
+    Raster CLUE allocation (Verburg et al. 1999).
 
     Equivalent to the vector version but operates on RasterBackend arrays.
     All operations are vectorized — suitable for grids of any size.
@@ -57,7 +47,6 @@ class AllocationCClueLike(SyncRasterModel):
         self.min_elasticity     = min_elasticity
         self.max_elasticity     = max_elasticity
 
-    
         default = AllocationSpec()
         if allocation_data is None:
             self.allocation_data = [default for _ in range(len(land_use_types))]
@@ -72,8 +61,6 @@ class AllocationCClueLike(SyncRasterModel):
         return self.backend.arrays.get(
             "mask", np.ones(self.shape, dtype=bool)
         ).astype(bool)
-
-    # ── main loop ─────────────────────────────────────────────────────────────
 
     def execute(self) -> None:
         step       = int(self.env.now())
@@ -97,13 +84,10 @@ class AllocationCClueLike(SyncRasterModel):
                 flag_flex   = True
             if n_iter >= self.max_iteration:
                 raise RuntimeError(
-                    f"Allocation did not converge at step {step} "
-                    f"(error={max_diff:.1f})"
+                    f"Allocation did not converge at step {step} (error={max_diff:.1f})"
                 )
 
         self._apply_complementar()
-
-    # ── compute change ────────────────────────────────────────────────────────
 
     def _compute_change(self, elasticity: list[float]) -> None:
         mask = self._mask()
@@ -121,7 +105,6 @@ class AllocationCClueLike(SyncRasterModel):
             max_val = alloc.max_value
 
             if lu_stat == 1:
-                # static — restore past for valid cells, keep nodata as-is
                 self.backend.arrays[lu] = np.where(mask, past, self.backend.get(lu))
                 continue
 
@@ -147,18 +130,9 @@ class AllocationCClueLike(SyncRasterModel):
                                  np.where(past <= max_val, max_val, past),
                                  new_val)
 
-            # FIX: only update valid cells — nodata cells keep their value
-            self.backend.arrays[lu] = np.where(
-                mask, new_val, self.backend.get(lu)
-            )
-
-    # ── correct cell change (vectorized) ──────────────────────────────────────
+            self.backend.arrays[lu] = np.where(mask, new_val, self.backend.get(lu))
 
     def _correct_cell_change(self) -> None:
-        """
-        Vectorized equivalent of correctCellChange.lua.
-        Only valid cells (mask=True) participate in redistribution.
-        """
         lus   = self.land_use_types
         TOL   = 0.005
         MAX_L = 25
@@ -172,7 +146,7 @@ class AllocationCClueLike(SyncRasterModel):
         flat_mask = mask.ravel()
 
         flat      = lambda lu: self.backend.get(lu).ravel().astype(np.float32)
-        originals = {lu: flat(lu) for lu in lus}          # snapshot before loop
+        originals = {lu: flat(lu) for lu in lus}
         vals      = np.stack([flat(lu)           for lu in lus], axis=1)
         pasts     = np.stack([flat(lu + "_past") for lu in lus], axis=1)
 
@@ -211,22 +185,18 @@ class AllocationCClueLike(SyncRasterModel):
             new_vals = np.where(is_static, vals, new_vals)
             vals     = np.clip(new_vals, 0.0, 1.0)
 
-        # FIX: write back only to valid cells — nodata cells keep original value
         for i, lu in enumerate(lus):
             self.backend.arrays[lu] = np.where(
                 flat_mask,
                 vals[:, i],
-                originals[lu],       # ← preserve nodata value (-1 or whatever)
+                originals[lu],
             ).reshape(shape)
-
-    # ── compare to demand ─────────────────────────────────────────────────────
 
     def _compare_to_demand(self, step: int, elasticity: list[float]) -> float:
         mask     = self._mask()
         max_diff = 0.0
 
         for lu_idx, lu in enumerate(self.land_use_types):
-            # sum only valid cells — unchanged from original
             area   = float(self.backend.get(lu)[mask].sum()) * self.cell_area
             demand = self.demand.get_current_lu_demand(lu_idx)
             lu_dir = self.demand.get_current_lu_direction(lu_idx)
@@ -252,13 +222,7 @@ class AllocationCClueLike(SyncRasterModel):
 
         return max_diff
 
-    # ── apply complementar ────────────────────────────────────────────────────
-
     def _apply_complementar(self) -> None:
-        """
-        Close to 100% using the complementar land use.
-        FIX: only updates valid cells — nodata cells keep their original value.
-        """
         mask   = self._mask()
         lus    = self.land_use_types
         others = [lu for lu in lus if lu != self.complementar_lu]
@@ -266,13 +230,11 @@ class AllocationCClueLike(SyncRasterModel):
         total = sum(self.backend.get(lu).astype(np.float32) for lu in others)
         comp  = np.clip(1.0 - total, 0.0, 1.0)
 
-        # FIX: preserve nodata value outside extent
         comp_original = self.backend.get(self.complementar_lu).astype(np.float32)
         self.backend.arrays[self.complementar_lu] = np.where(
             mask, comp, comp_original
         )
 
-        # subtract deficit from the LU with the largest value (valid cells only)
         deficit = np.maximum(0.0, total - 1.0)
         if deficit.any():
             no_data  = getattr(self, "land_use_no_data", None)
@@ -284,7 +246,7 @@ class AllocationCClueLike(SyncRasterModel):
                 )
                 biggest = np.argmax(stacked, axis=0)
                 for i, lu in enumerate(eligible):
-                    deficit_mask = (biggest == i) & (deficit > 0) & mask  # FIX: & mask
+                    deficit_mask = (biggest == i) & (deficit > 0) & mask
                     self.backend.arrays[lu] = np.where(
                         deficit_mask,
                         np.maximum(0.0, self.backend.get(lu) - deficit),

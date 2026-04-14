@@ -76,22 +76,28 @@ class LUCCRasterExecutor(ModelExecutor):
                     f"Expected keys from spec: {expected}"
                 )
 
-    def run(self, record: ExperimentRecord):
+    def run(self, data, record: ExperimentRecord):
+        """
+        Validate bands, then execute the LUCC simulation.
+
+        `data` is the RasterBackend returned by load(), injected by the platform.
+        No I/O happens here — rasterization is done once in load().
+        """
         from dissmodel.core import Environment
         from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.modules.raster.potential.continuous.linear import PotentialCLinearRegression
-        from dissluc.modules.raster.allocation.continuous.clue  import AllocationCClueLike
-        from dissluc.modules.schemas import RegressionSpec, AllocationSpec
+        from dissluc.components.potential.raster import PotentialLinearRegression
+        from dissluc.components.allocation.raster import AllocationClueLike
+        from dissluc.common.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
         params   = record.parameters
         lu_types = spec.get("land_use_types", ["f", "d", "outros"])
         n_steps  = params.get("n_steps", 7)
 
-        # ── single load ───────────────────────────────────────────────────────
-        backend = self.load(record)
+        # data injected by execute_lifecycle — no I/O here
+        backend = data
 
-        # ── band-level validation (only possible after rasterization) ─────────
+        # band-level validation (only possible after rasterization)
         _check_bands(backend, spec)
 
         # ── build models ──────────────────────────────────────────────────────
@@ -116,7 +122,7 @@ class LUCCRasterExecutor(ModelExecutor):
             for a in spec.get("allocation", [])
         ]]
 
-        potential = PotentialCLinearRegression(
+        potential = PotentialLinearRegression(
             backend          = backend,
             potential_data   = potential_data,
             demand           = demand,
@@ -124,7 +130,7 @@ class LUCCRasterExecutor(ModelExecutor):
             land_use_no_data = spec.get("land_use_no_data", "outros"),
         )
 
-        AllocationCClueLike(
+        AllocationClueLike(
             backend         = backend,
             demand          = demand,
             potential       = potential,

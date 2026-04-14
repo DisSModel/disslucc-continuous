@@ -1,13 +1,13 @@
 from __future__ import annotations
 import math
 
-from dissluc.modules.schemas import RegressionSpec
+from dissluc.common.schemas import RegressionSpec
 
 from dissmodel.geo import SyncSpatialModel
 
-class PotentialCLinearRegression(SyncSpatialModel):
+class PotentialLinearRegression(SyncSpatialModel):
     """
-    Potencial de mudança por regressão linear contínua (C-CLUE).
+    Potencial de mudança por regressão linear contínua (CLUE).
     Verburg et al. (1999).
     """
 
