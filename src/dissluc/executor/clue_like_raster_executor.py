@@ -85,8 +85,8 @@ class LUCCRasterExecutor(ModelExecutor):
         """
         from dissmodel.core import Environment
         from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.modules.raster.potential.continuous.linear import PotentialCLinearRegression
-        from dissluc.modules.raster.allocation.continuous.clue  import AllocationCClueLike
+        from dissluc.modules.raster.potential.linear  import PotentialLinearRegression
+        from dissluc.modules.raster.allocation.clue   import AllocationClueLike
         from dissluc.modules.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
@@ -122,7 +122,7 @@ class LUCCRasterExecutor(ModelExecutor):
             for a in spec.get("allocation", [])
         ]]
 
-        potential = PotentialCLinearRegression(
+        potential = PotentialLinearRegression(
             backend          = backend,
             potential_data   = potential_data,
             demand           = demand,
@@ -130,7 +130,7 @@ class LUCCRasterExecutor(ModelExecutor):
             land_use_no_data = spec.get("land_use_no_data", "outros"),
         )
 
-        AllocationCClueLike(
+        AllocationClueLike(
             backend         = backend,
             demand          = demand,
             potential       = potential,
