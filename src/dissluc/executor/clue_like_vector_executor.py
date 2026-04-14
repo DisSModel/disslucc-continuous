@@ -66,9 +66,9 @@ class LUCCVectorExecutor(ModelExecutor):
         """
         from dissmodel.core import Environment
         from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.modules.vector.potential.linear import PotentialLinearRegression
-        from dissluc.modules.vector.allocation.clue  import AllocationClueLike
-        from dissluc.modules.schemas import RegressionSpec, AllocationSpec
+        from dissluc.vector.potential.linear import PotentialLinearRegression
+        from dissluc.vector.allocation.clue  import AllocationClueLike
+        from dissluc.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
         params   = record.parameters
