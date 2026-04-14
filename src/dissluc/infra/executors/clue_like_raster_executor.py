@@ -1,45 +1,64 @@
 from __future__ import annotations
 
-import geopandas as gpd
-
 from dissmodel.executor     import ExperimentRecord, ModelExecutor
 from dissmodel.executor.cli import run_cli
 from dissmodel.io           import load_dataset, save_dataset
+from dissmodel.io.convert   import vector_to_raster_backend
 
 
-class LUCCVectorExecutor(ModelExecutor):
+class LUCCRasterExecutor(ModelExecutor):
     """
-    Executor for LUCC vector simulations (C-CLUE / GeoDataFrame).
-    Equivalent to lab1_main.py — works via CLI and platform API.
+    Executor for LUCC raster simulations (C-CLUE).
+    Equivalent to lab1_main_raster.py — works via CLI and platform API.
 
     Input contract
     --------------
-    After load(), the GeoDataFrame exposes columns named after land_use_types
+    After load(), the RasterBackend exposes bands named after land_use_types
     and driver_columns from the model spec. Non-canonical column names are
-    resolved via column_map before any model sees the data.
+    resolved via column_map before rasterization.
     """
 
-    name = "lucc_vector"
+    name = "lucc_raster"
 
     # ── public contract ───────────────────────────────────────────────────────
 
-    def load(self, record: ExperimentRecord) -> gpd.GeoDataFrame:
+    def load(self, record: ExperimentRecord):
+        spec        = record.resolved_spec.get("model", {})
+        params      = record.parameters
+        lu_types    = spec.get("land_use_types", ["f", "d", "outros"])
+        driver_cols = spec.get("driver_columns", {}).get("cols", [])
+
+        attrs = {lu: 0.0 for lu in lu_types}
+        attrs.update({col: 0.0 for col in driver_cols})
+
         gdf, checksum = load_dataset(record.source.uri)
         record.source.checksum = checksum
 
         if record.column_map:
             gdf = gdf.rename(columns={v: k for k, v in record.column_map.items()})
 
-        record.add_log(f"Loaded GDF: {len(gdf)} features  crs={gdf.crs}")
-        return gdf
+        backend = vector_to_raster_backend(
+            source       = gdf,
+            resolution   = params.get("resolution", 5000.0),
+            attrs        = attrs,
+            crs          = params.get("crs"),
+            nodata_value = -1,
+        )
+
+        record.add_log(
+            f"Rasterized: shape={backend.shape} "
+            f"valid={int(backend.get('mask').sum()):,} cells"
+        )
+        return backend
 
     def validate(self, record: ExperimentRecord) -> None:
         """
         Stateless pre-flight checks on the record itself — no data loading.
 
         Verifies that column_map keys are consistent with the model spec.
-        Column-level checks (missing columns after mapping) run at the start
-        of run() after a single load(), where the cost is already paid.
+        Band-level checks (missing bands after rasterization) run at the
+        start of run() after a single load(), where the cost is already paid.
+        The rasterization in load() is expensive — never run it twice.
         """
         spec        = record.resolved_spec.get("model", {})
         lu_types    = spec.get("land_use_types", [])
@@ -57,18 +76,18 @@ class LUCCVectorExecutor(ModelExecutor):
                     f"Expected keys from spec: {expected}"
                 )
 
-    def run(self, data: gpd.GeoDataFrame, record: ExperimentRecord) -> gpd.GeoDataFrame:
+    def run(self, data, record: ExperimentRecord):
         """
-        Validate columns, then execute the LUCC simulation.
+        Validate bands, then execute the LUCC simulation.
 
-        `data` is the GeoDataFrame returned by load(), injected by the platform.
-        No I/O happens here.
+        `data` is the RasterBackend returned by load(), injected by the platform.
+        No I/O happens here — rasterization is done once in load().
         """
         from dissmodel.core import Environment
         from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.vector.potential.linear import PotentialLinearRegression
-        from dissluc.vector.allocation.clue  import AllocationClueLike
-        from dissluc.schemas import RegressionSpec, AllocationSpec
+        from dissluc.components.potential.raster import PotentialLinearRegression
+        from dissluc.components.allocation.raster import AllocationClueLike
+        from dissluc.common.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
         params   = record.parameters
@@ -76,10 +95,10 @@ class LUCCVectorExecutor(ModelExecutor):
         n_steps  = params.get("n_steps", 7)
 
         # data injected by execute_lifecycle — no I/O here
-        gdf = data
+        backend = data
 
-        # column-level validation (only possible after load)
-        _check_columns(gdf, spec)
+        # band-level validation (only possible after rasterization)
+        _check_bands(backend, spec)
 
         # ── build models ──────────────────────────────────────────────────────
         env = Environment(end_time=n_steps - 1)
@@ -104,7 +123,7 @@ class LUCCVectorExecutor(ModelExecutor):
         ]]
 
         potential = PotentialLinearRegression(
-            gdf              = gdf,
+            backend          = backend,
             potential_data   = potential_data,
             demand           = demand,
             land_use_types   = lu_types,
@@ -112,7 +131,7 @@ class LUCCVectorExecutor(ModelExecutor):
         )
 
         AllocationClueLike(
-            gdf             = gdf,
+            backend         = backend,
             demand          = demand,
             potential       = potential,
             land_use_types  = lu_types,
@@ -123,26 +142,31 @@ class LUCCVectorExecutor(ModelExecutor):
         )
 
         if params.get("interactive", False):
-            from dissmodel.visualization import Map
-            Map(
-                gdf         = gdf,
-                plot_params = {
-                    "column": lu_types[0],
-                    "cmap":   "Greens",
-                    "scheme": "equal_interval",
-                    "k":      5,
-                    "legend": True,
-                },
+            from dissmodel.visualization import RasterMap
+            RasterMap(
+                backend    = backend,
+                band       = lu_types[0],
+                cmap       = "Greens",
+                scheme     = "equal_interval",
+                k          = 5,
+                legend     = True,
+                mask_band  = "mask",
+                mask_value = 0,
             )
 
         record.add_log(f"Running {n_steps} steps...")
         env.run()
         record.add_log("Simulation complete")
-        return gdf
+        return backend, {}
 
-    def save(self, result: gpd.GeoDataFrame, record: ExperimentRecord) -> ExperimentRecord:
-        uri      = record.output_path or "local_output.gpkg"
-        checksum = save_dataset(result, uri)
+    def save(self, result, record: ExperimentRecord) -> ExperimentRecord:
+        if isinstance(result, tuple):
+            backend, meta = result
+        else:
+            backend, meta = result, {}
+
+        uri      = record.output_path or "local_output.tif"
+        checksum = save_dataset((backend, meta), uri)
 
         record.output_path   = uri
         record.output_sha256 = checksum
@@ -153,9 +177,9 @@ class LUCCVectorExecutor(ModelExecutor):
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-def _check_columns(gdf: gpd.GeoDataFrame, spec: dict) -> None:
+def _check_bands(backend, spec: dict) -> None:
     """
-    Verify expected columns are present after column_map has been applied.
+    Verify expected bands are present after rasterization.
     Runs inside run() after a single load() — not in validate().
     """
     lu_types    = spec.get("land_use_types", [])
@@ -165,15 +189,15 @@ def _check_columns(gdf: gpd.GeoDataFrame, spec: dict) -> None:
     if not expected:
         return
 
-    missing = expected - set(gdf.columns)
+    actual  = set(backend.arrays.keys()) - {"mask"}
+    missing = expected - actual
 
     if missing:
         raise ValueError(
-            f"Columns missing after column_map: {missing}\n"
-            f"Dataset columns: {sorted(gdf.columns)}\n"
+            f"Bands missing after rasterization: {missing}\n"
             f"Check column_map or driver_columns in model.toml."
         )
 
 
 if __name__ == "__main__":
-    run_cli(LUCCVectorExecutor)
+    run_cli(LUCCRasterExecutor)
