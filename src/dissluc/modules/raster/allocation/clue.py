@@ -54,6 +54,14 @@ class AllocationClueLike(SyncRasterModel):
             region0 = allocation_data[0] if isinstance(allocation_data[0], list) else allocation_data
             self.allocation_data = list(region0)
 
+    # ── helpers ───────────────────────────────────────────────────────────────
+
+    def _mask(self) -> np.ndarray:
+        """Boolean mask: True = valid cell. Cached reference — not a copy."""
+        return self.backend.arrays.get(
+            "mask", np.ones(self.shape, dtype=bool)
+        ).astype(bool)
+
     def execute(self) -> None:
         step       = int(self.env.now())
         elasticity = [self.initial_elasticity] * len(self.land_use_types)
