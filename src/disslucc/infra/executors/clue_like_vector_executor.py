@@ -65,10 +65,10 @@ class LUCCVectorExecutor(ModelExecutor):
         No I/O happens here.
         """
         from dissmodel.core import Environment
-        from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.components.potential.vector import PotentialLinearRegression
-        from dissluc.components.allocation.vector import AllocationClueLike
-        from dissluc.common.schemas import RegressionSpec, AllocationSpec
+        from disslucc import DemandPreComputedValues, load_demand_csv
+        from disslucc.components.potential.vector import PotentialLinearRegression
+        from disslucc.components.allocation.vector import AllocationClueLike
+        from disslucc.common.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
         params   = record.parameters

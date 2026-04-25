@@ -31,12 +31,12 @@ import matplotlib.pyplot as plt
 from dissmodel.core import Environment
 from dissmodel.geo.raster.backend import RasterBackend
 
-from dissluc.components.demand import DemandPreComputedValues, load_demand_csv
-from dissluc.components.potential.vector import PotentialLinearRegression as VecPotential
-from dissluc.components.allocation.vector import AllocationClueLike        as VecAllocation
-from dissluc.components.potential.raster import PotentialLinearRegression as RasPotential
-from dissluc.components.allocation.raster import AllocationClueLike        as RasAllocation
-from dissluc.common.schemas import RegressionSpec, AllocationSpec
+from disslucc.components.demand import DemandPreComputedValues, load_demand_csv
+from disslucc.components.potential.vector import PotentialLinearRegression as VecPotential
+from disslucc.components.allocation.vector import AllocationClueLike        as VecAllocation
+from disslucc.components.potential.raster import PotentialLinearRegression as RasPotential
+from disslucc.components.allocation.raster import AllocationClueLike        as RasAllocation
+from disslucc.common.schemas import RegressionSpec, AllocationSpec
 
 # ── configuration ─────────────────────────────────────────────────────────────
 

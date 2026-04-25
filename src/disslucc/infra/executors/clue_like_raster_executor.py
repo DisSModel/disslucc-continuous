@@ -84,10 +84,10 @@ class LUCCRasterExecutor(ModelExecutor):
         No I/O happens here — rasterization is done once in load().
         """
         from dissmodel.core import Environment
-        from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.components.potential.raster import PotentialLinearRegression
-        from dissluc.components.allocation.raster import AllocationClueLike
-        from dissluc.common.schemas import RegressionSpec, AllocationSpec
+        from disslucc import DemandPreComputedValues, load_demand_csv
+        from disslucc.components.potential.raster import PotentialLinearRegression
+        from disslucc.components.allocation.raster import AllocationClueLike
+        from disslucc.common.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
         params   = record.parameters
