@@ -17,6 +17,9 @@ from .components.allocation.vector import AllocationClueLike as AllocationVector
 from .common.schemas        import RegressionSpec, AllocationSpec
 from .common.protocols      import DemandProtocol, PotentialProtocol
 
+# Registra os executors no ExecutorRegistry via __init_subclass__
+from .infra.executors import LUCCRasterExecutor, LUCCVectorExecutor, LuccBenchmarkExecutor  # noqa: F401
+
 __all__ = [
     "DemandPreComputedValues",
     "PotentialRaster",
@@ -27,5 +30,9 @@ __all__ = [
     "AllocationSpec",
     "DemandProtocol",
     "PotentialProtocol",
-    "load_demand_csv"
+    "load_demand_csv",
+    # Executors expostos para quem precisar instanciar diretamente
+    "LUCCRasterExecutor",
+    "LUCCVectorExecutor",
+    "LuccBenchmarkExecutor",
 ]
