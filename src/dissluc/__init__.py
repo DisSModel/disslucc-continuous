@@ -1,5 +1,5 @@
 """
-dissluc-continuous — DissModel LUC (Land Use Change) library
+disslucc-continuous — DissModel LUC (Land Use Change) library
 ===========================================================
 Port do LuccME para o framework DisSModel (Python / GeoPandas).
 

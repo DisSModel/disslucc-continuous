@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dissluc-continuous"
+name = "disslucc-continuous"
 version = "0.2.0"
 description = "Land Use Change simulation plugin for DisSModel"
 readme = "README.md"
