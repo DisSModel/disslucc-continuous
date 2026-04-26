@@ -7,7 +7,7 @@ from dissmodel.io.convert   import vector_to_raster_backend
 
 from dissmodel.io._utils import read_text
 
-from disslucc.common.utils import _default_output_uri
+from disslucc.common.utils import default_output_uri
 
 class LUCCRasterExecutor(ModelExecutor):
     """
@@ -172,7 +172,7 @@ class LUCCRasterExecutor(ModelExecutor):
 
         uri = (
             record.output_path
-            or _default_output_uri(record.experiment_id, ext="tif")
+            or default_output_uri(record.experiment_id, ext="tif")
         )
 
         checksum = save_dataset((backend, meta), uri)

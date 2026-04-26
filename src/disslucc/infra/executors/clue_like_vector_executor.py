@@ -6,7 +6,7 @@ from dissmodel.executor     import ExperimentRecord, ModelExecutor
 from dissmodel.executor.cli import run_cli
 from dissmodel.io           import load_dataset, save_dataset
 
-from disslucc.common.utils import _default_output_uri
+from disslucc.common.utils import default_output_uri
 
 class LUCCVectorExecutor(ModelExecutor):
     """
@@ -144,7 +144,7 @@ class LUCCVectorExecutor(ModelExecutor):
     def save(self, result: gpd.GeoDataFrame, record: ExperimentRecord) -> ExperimentRecord:
         uri = (
             record.output_path
-            or _default_output_uri(record.experiment_id, ext="gpkg")
+            or default_output_uri(record.experiment_id, ext="gpkg")
         )
         checksum = save_dataset(result, uri)
 
