@@ -6,6 +6,7 @@ from dissmodel.executor     import ExperimentRecord, ModelExecutor
 from dissmodel.executor.cli import run_cli
 from dissmodel.io           import load_dataset, save_dataset
 
+from disslucc.common.utils import _default_output_uri
 
 class LUCCVectorExecutor(ModelExecutor):
     """
@@ -141,7 +142,10 @@ class LUCCVectorExecutor(ModelExecutor):
         return gdf
 
     def save(self, result: gpd.GeoDataFrame, record: ExperimentRecord) -> ExperimentRecord:
-        uri      = record.output_path or "local_output.gpkg"
+        uri = (
+            record.output_path
+            or _default_output_uri(record.experiment_id, ext="gpkg")
+        )
         checksum = save_dataset(result, uri)
 
         record.output_path   = uri
@@ -153,6 +157,8 @@ class LUCCVectorExecutor(ModelExecutor):
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
+    
 def _check_columns(gdf: gpd.GeoDataFrame, spec: dict) -> None:
     """
     Verify expected columns are present after column_map has been applied.

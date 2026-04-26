@@ -7,6 +7,8 @@ from dissmodel.io.convert   import vector_to_raster_backend
 
 from dissmodel.io._utils import read_text
 
+from disslucc.common.utils import _default_output_uri
+
 class LUCCRasterExecutor(ModelExecutor):
     """
     Executor for LUCC raster simulations (C-CLUE).
@@ -170,7 +172,7 @@ class LUCCRasterExecutor(ModelExecutor):
 
         uri = (
             record.output_path
-            or f"s3://dissmodel-outputs/experiments/{record.experiment_id}/output.tif"
+            or _default_output_uri(record.experiment_id, ext="tif")
         )
 
         checksum = save_dataset((backend, meta), uri)
