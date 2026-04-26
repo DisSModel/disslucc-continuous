@@ -5,6 +5,7 @@ from dissmodel.executor.cli import run_cli
 from dissmodel.io           import load_dataset, save_dataset
 from dissmodel.io.convert   import vector_to_raster_backend
 
+from dissmodel.io._utils import read_text
 
 class LUCCRasterExecutor(ModelExecutor):
     """
@@ -103,8 +104,10 @@ class LUCCRasterExecutor(ModelExecutor):
         # ── build models ──────────────────────────────────────────────────────
         env = Environment(end_time=n_steps - 1)
 
+        demand_raw = read_text(params["demand_csv"]) 
+
         demand = DemandPreComputedValues(
-            annual_demand  = load_demand_csv(params["demand_csv"], lu_types),
+            annual_demand  = load_demand_csv(demand_raw, lu_types),
             land_use_types = lu_types,
         )
 

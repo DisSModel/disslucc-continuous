@@ -1,76 +1,91 @@
 """
 dissluc.demand.precomputed
 --------------------------
-Demanda pré-computada por passo — substrato neutro (sem GDF).
-Compatível com DemandProtocol; pode ser usado com vector ou raster.
+Pre-computed per-step demand — substrate-neutral (no GDF dependency).
+Compatible with DemandProtocol; works with both vector and raster substrates.
 """
 from __future__ import annotations
-from pathlib import Path
+
 import csv
+import io
 
 from dissmodel.core import Model
 
 
 def load_demand_csv(
-    path: str | Path,
+    raw: str,
     land_use_types: list[str],
 ) -> list[list[float]]:
     """
-    Lê um CSV de demanda e retorna uma lista pronta para DemandPreComputedValues.
+    Parse a demand CSV string into a list ready for DemandPreComputedValues.
 
-    Formato esperado do CSV — uma coluna por uso do solo, uma linha por passo:
+    Expected format — one column per land use type, one row per step:
 
         f,d,outros
         137878.17,19982.63,6489.20
         137622.22,20238.58,6489.20
         ...
 
-    A ordem das colunas não precisa bater com land_use_types;
-    o mapeamento é feito pelo nome do cabeçalho.
+    Column order does not need to match land_use_types; mapping is done
+    by header name.
 
-    Parâmetros
+    This function is pure parsing — no I/O. The caller is responsible for
+    reading the raw string from any source (local path, s3://, http://):
+
+        from dissmodel.io._utils import read_text
+        raw = read_text("s3://bucket/demand.csv")
+        demand = load_demand_csv(raw, ["f", "d", "outros"])
+
+    Parameters
     ----------
-    path : str | Path
-        Caminho para o arquivo CSV.
+    raw : str
+        CSV content as a string.
     land_use_types : list[str]
-        Nomes dos usos na ordem em que a demanda deve ser retornada.
+        Land use names in the order the demand values should be returned.
 
-    Retorna
+    Returns
     -------
     list[list[float]]
-        [passo][uso] na ordem de land_use_types.
+        [step][land_use] in land_use_types order.
+
+    Raises
+    ------
+    ValueError
+        If any land use type is missing from the CSV header.
     """
-    path = Path(path)
-    with path.open(newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        missing = [lu for lu in land_use_types if lu not in reader.fieldnames]
-        if missing:
-            raise ValueError(
-                f"Colunas ausentes no CSV '{path.name}': {missing}\n"
-                f"Colunas disponíveis: {list(reader.fieldnames)}"
-            )
-        return [
-            [float(row[lu]) for lu in land_use_types]
-            for row in reader
-        ]
+    reader  = csv.DictReader(io.StringIO(raw))
+    missing = [lu for lu in land_use_types if lu not in reader.fieldnames]
+    if missing:
+        raise ValueError(
+            f"Columns missing from demand CSV: {missing}\n"
+            f"Available columns: {list(reader.fieldnames)}"
+        )
+    return [
+        [float(row[lu]) for lu in land_use_types]
+        for row in reader
+    ]
 
 
 class DemandPreComputedValues(Model):
     """
-    Demanda pré-computada por passo de simulação.
+    Pre-computed per-step land use demand.
 
-    Parâmetros
+    Parameters
     ----------
     annual_demand : list[list[float]]
-        [passo][uso] — índice 0 = passo inicial (env.now() == 0).
-        Use load_demand_csv() para carregar de um arquivo.
+        [step][land_use] — index 0 is the initial step (env.now() == 0).
+        Use load_demand_csv() to build this from a CSV string.
     land_use_types : list[str]
-        Nomes dos usos do solo na mesma ordem das colunas de annual_demand.
+        Land use names in the same column order as annual_demand.
 
-    Exemplo
+    Example
     -------
+    from dissmodel.io._utils import read_text
+    from disslucc import load_demand_csv, DemandPreComputedValues
+
+    raw    = read_text("s3://bucket/demand.csv")   # caller resolves URI
     demand = DemandPreComputedValues(
-        annual_demand  = load_demand_csv("demand.csv", ["f", "d", "outros"]),
+        annual_demand  = load_demand_csv(raw, ["f", "d", "outros"]),
         land_use_types = ["f", "d", "outros"],
     )
     """
@@ -99,10 +114,12 @@ class DemandPreComputedValues(Model):
             elif prev < curr:               self.demand_direction[i] = self.INCREASING
             else:                           self.demand_direction[i] = self.DECREASING
 
-    # ── DemandProtocol ────────────────────────────────────────────────
-    def get_current_lu_demand(self, i: int) -> float:   return self.current_demand[i]
-    def get_previous_lu_demand(self, i: int) -> float:  return self.previous_demand[i]
-    def get_current_lu_direction(self, i: int) -> int:  return self.demand_direction[i]
+    # ── DemandProtocol ────────────────────────────────────────────────────────
+
+    def get_current_lu_demand(self, i: int) -> float:  return self.current_demand[i]
+    def get_previous_lu_demand(self, i: int) -> float: return self.previous_demand[i]
+    def get_current_lu_direction(self, i: int) -> int: return self.demand_direction[i]
+
     def change_lu_direction(self, i: int) -> int:
         self.demand_direction[i] *= -1
         return self.demand_direction[i]
