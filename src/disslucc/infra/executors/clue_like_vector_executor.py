@@ -7,6 +7,7 @@ from dissmodel.executor.cli import run_cli
 from dissmodel.io           import load_dataset, save_dataset
 
 from disslucc.common.utils import default_output_uri
+from dissmodel.io._utils import read_text
 
 class LUCCVectorExecutor(ModelExecutor):
     """
@@ -85,8 +86,10 @@ class LUCCVectorExecutor(ModelExecutor):
         # ── build models ──────────────────────────────────────────────────────
         env = Environment(end_time=n_steps - 1)
 
+        demand_raw = read_text(params["demand_csv"]) 
+
         demand = DemandPreComputedValues(
-            annual_demand  = load_demand_csv(params["demand_csv"], lu_types),
+            annual_demand  = load_demand_csv(demand_raw, lu_types),
             land_use_types = lu_types,
         )
 
