@@ -168,7 +168,11 @@ class LUCCRasterExecutor(ModelExecutor):
         else:
             backend, meta = result, {}
 
-        uri      = record.output_path or "local_output.tif"
+        uri = (
+            record.output_path
+            or f"s3://dissmodel-outputs/experiments/{record.experiment_id}/output.tif"
+        )
+
         checksum = save_dataset((backend, meta), uri)
 
         record.output_path   = uri
