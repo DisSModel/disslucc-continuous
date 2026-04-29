@@ -7,7 +7,7 @@ All cell operations are fully vectorized with NumPy — no per-cell loops.
 from __future__ import annotations
 import numpy as np
 
-from dissluc.common.schemas import AllocationSpec
+from disslucc.common.schemas import AllocationSpec
 from dissmodel.geo import SyncRasterModel
 
 class AllocationClueLike(SyncRasterModel):

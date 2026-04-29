@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 
-from dissluc.common.schemas import RegressionSpec
+from disslucc.common.schemas import RegressionSpec
 
 from dissmodel.geo import SyncSpatialModel
 

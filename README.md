@@ -352,7 +352,7 @@ max_change = 1
 
 ```bash
 # Via pip
-pip install dissluc-continuous
+pip install disslucc-continuous
 
 # From source
 git clone https://github.com/LambdaGeo/DisSLUCC.git
