@@ -62,7 +62,7 @@ python lab1_raster.py run \
 python lab1_raster.py validate --input data/input/csAC.zip
 
 # Run the Benchmark suite (Vector vs Raster vs TerraME/LUCCME comparison)
-python -m dissluc.infra.executors.lucc_benchmark_executor run \
+python -m disslucc.infra.executors.lucc_benchmark_executor run \
   --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
   --param  demand_csv=examples/data/input/examples_demand_lab1.csv \

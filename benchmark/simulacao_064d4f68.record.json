@@ -1,0 +1,71 @@
+{
+  "experiment_id": "064d4f6894e147feb25a2fcc923e3453",
+  "created_at": "2026-05-02T23:41:35.184125",
+  "model_name": "local",
+  "model_commit": "local-cli",
+  "code_version": "dev",
+  "resolved_spec": {},
+  "source": {
+    "type": "local",
+    "uri": "examples/data/input/csAC.zip",
+    "collection": "",
+    "version": "",
+    "checksum": "dc659e611cb082bc40a2acbac8ec816cbaff66bf5c97f4940abe8c7c3c91a6eb"
+  },
+  "input_format": "auto",
+  "column_map": {},
+  "band_map": {},
+  "parameters": {
+    "demand_csv": "examples/data/input/examples_demand_lab1.csv",
+    "terrame_reference": "benchmark/data/LUCCME_Lab1_2014.zip",
+    "n_steps": 6,
+    "tolerance": 0.01
+  },
+  "output_path": "benchmark/simulacao_064d4f68.tif",
+  "artifacts": {
+    "plot": "e93594a5682ed2cedda1f3f2183e3168b2385a8b8f42a5b58fc49bbb25a8bef8",
+    "report": "0a8c74df300e2b8d46cd70d9e528abedf005de37cc11d5e9a139cab8101b19a1",
+    "profiling": "2f876c7d75ef7068c97255aaa09bb2a7e0da96ee18aed32edbe0c7f3b6a04cfd"
+  },
+  "metrics": {
+    "Vector_vs_TerraME": {
+      "match_pct": 97.09461515059324,
+      "mae": 0.0022764970910315783,
+      "rmse": 0.0038817988763166435,
+      "max_err": 0.0156034736177963,
+      "n_cells": 6574
+    },
+    "Raster_vs_TerraME": {
+      "match_pct": 97.09461515059324,
+      "mae": 0.0022764990324372907,
+      "rmse": 0.0038817986262381678,
+      "max_err": 0.015603571145812282,
+      "n_cells": 6574
+    },
+    "Vector_vs_Raster": {
+      "match_pct": 100.0,
+      "mae": 7.864424227577985e-9,
+      "rmse": 1.323676637014114e-8,
+      "max_err": 1.1453525662792619e-7,
+      "n_cells": 6574
+    },
+    "time_validate_sec": 0.0,
+    "time_load_sec": 0.385,
+    "time_run_sec": 1.983,
+    "time_save_sec": 0.002,
+    "time_total_sec": 2.37
+  },
+  "status": "completed",
+  "logs": [
+    "Loaded Shapefile: 6574 cells",
+    "Loaded TerraME Ref: 6574 cells",
+    "Running Vector Model (6 steps)...",
+    "Vector done: 122.5 ms/step",
+    "Running Raster Model (6 steps)...",
+    "Raster done: 31.6 ms/step",
+    "Calculating metrics...",
+    "Generating artifacts...",
+    "Saved artifacts to benchmark/simulacao_064d4f68.tif",
+    "Saved profiling artifact → benchmark/profiling_064d4f68.md"
+  ]
+}

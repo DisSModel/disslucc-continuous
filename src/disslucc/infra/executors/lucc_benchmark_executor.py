@@ -22,6 +22,8 @@ from dissmodel.io import load_dataset
 from dissmodel.io._utils import write_bytes, write_text
 from dissmodel.executor.config import settings
 
+from dissmodel.io._utils import read_text
+
 from disslucc import DemandPreComputedValues, load_demand_csv
 from disslucc.components.potential.vector import PotentialLinearRegression as VecPotential
 from disslucc.components.allocation.vector import AllocationClueLike        as VecAllocation
@@ -119,7 +121,7 @@ class LuccBenchmarkExecutor(ModelExecutor):
         gdf_vec = gdf_orig.copy()
         env_vec = Environment(start_time=1, end_time=n_steps)
         demand  = DemandPreComputedValues(
-            annual_demand  = load_demand_csv(demand_csv, LAND_USE_TYPES),
+            annual_demand  = load_demand_csv(read_text(demand_csv), LAND_USE_TYPES),
             land_use_types = LAND_USE_TYPES,
         )
         pot_vec = VecPotential(
@@ -142,8 +144,11 @@ class LuccBenchmarkExecutor(ModelExecutor):
         record.add_log(f"Running Raster Model ({n_steps} steps)...")
         backend, rows, cols = _build_mock_raster(gdf_orig)
         env_ras = Environment(start_time=1, end_time=n_steps)
+        
+        
+
         demand  = DemandPreComputedValues(
-            annual_demand  = load_demand_csv(demand_csv, LAND_USE_TYPES),
+            annual_demand  = load_demand_csv(read_text(demand_csv), LAND_USE_TYPES),
             land_use_types = LAND_USE_TYPES,
         )
         pot_ras = RasPotential(
