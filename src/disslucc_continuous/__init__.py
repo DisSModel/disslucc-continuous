@@ -1,5 +1,5 @@
 """
-disslucc-continuous — DissModel LUC (Land Use Change) library
+disslucc_continuous — DissModel LUC (Land Use Change) library
 ===========================================================
 Port do LuccME para o framework DisSModel (Python / GeoPandas).
 
@@ -13,9 +13,9 @@ from .components.potential.vector import PotentialLinearRegression as PotentialV
 from .components.allocation.raster import AllocationClueLike as AllocationRaster
 from .components.allocation.vector import AllocationClueLike as AllocationVector
 
-# Re-exporting from common
-from .common.schemas        import RegressionSpec, AllocationSpec
-from .common.protocols      import DemandProtocol, PotentialProtocol
+# Re-exporting from schemas
+from .schemas.schemas        import RegressionSpec, AllocationSpec
+from .schemas.protocols      import DemandProtocol, PotentialProtocol
 
 # Registra os executors no ExecutorRegistry via __init_subclass__
 from .infra.executors import LUCCRasterExecutor, LUCCVectorExecutor, LuccBenchmarkExecutor  # noqa: F401

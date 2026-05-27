@@ -19,7 +19,7 @@ DisSLUCC-Continuous focus on **continuous** land use change (area/percentage per
 | **TerraME** | `dissmodel` | Generic framework for dynamic spatial modeling |
 | **LUCCME** | `DisSLUCC-Continuous` | Domain-specific environment for continuous LUCC modeling |
 | **TerraLib** | `geopandas`/`shapely` | Geographic data handling |
-| **FillCell** | `dissluc.io` | Cellular space preparation utilities |
+| **FillCell** | `disslucc_continuous.io` | Cellular space preparation utilities |
 
 ```
 ┌─────────────────────────────────────┐     ┌─────────────────────────────────────┐
@@ -30,7 +30,7 @@ DisSLUCC-Continuous focus on **continuous** land use change (area/percentage per
 │  └───────────┘  └───────────┘       │     │  └───────────┘  └───────────┘       │
 └─────────────────────────────────────┘     └─────────────────────────────────────┘
 
-> ℹ️ **Note**: Both the Python package name and repository name are **DisSLUCC-Continuous** (`dissluc` for imports).
+> ℹ️ **Note**: Both the Python package name and repository name are **DisSLUCC-Continuous** (`disslucc_continuous` for imports).
 
 ---
 
@@ -62,7 +62,7 @@ python lab1_raster.py run \
 python lab1_raster.py validate --input data/input/csAC.zip
 
 # Run the Benchmark suite (Vector vs Raster vs TerraME/LUCCME comparison)
-python -m disslucc.infra.executors.lucc_benchmark_executor run \
+python -m disslucc_continuous.infra.executors.lucc_benchmark_executor run \
   --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
   --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
@@ -107,7 +107,7 @@ DisSLUCC implements the three-pillar LUCC modeling philosophy described by *Verb
 Computes the magnitude of land-use change to allocate at each time step.
 
 ```python
-from dissluc import DemandPreComputedValues, load_demand_csv
+from disslucc_continuous import DemandPreComputedValues, load_demand_csv
 
 demand = DemandPreComputedValues(
     annual_demand  = load_demand_csv("demand.csv", ["f", "d", "outros"]),
@@ -120,7 +120,7 @@ demand = DemandPreComputedValues(
 Estimates the suitability of each cell to change, based on spatial driving factors.
 
 ```python
-from dissluc import PotentialLinearRegression, RegressionSpec
+from disslucc_continuous import PotentialLinearRegression, RegressionSpec
 
 potential = PotentialLinearRegression(
     gdf              = gdf,
@@ -152,7 +152,7 @@ potential = PotentialLinearRegression(
 Spatially distributes changes based on demand and cell-level potential.
 
 ```python
-from dissluc import AllocationClueLike, AllocationSpec
+from disslucc_continuous import AllocationClueLike, AllocationSpec
 
 AllocationClueLike(
     gdf             = gdf,
@@ -206,7 +206,7 @@ Infrastructure Layer (ModelExecutor)
 The `LUCCBenchmarkExecutor` is a meta-executor that runs vector and raster substrates in a single pass and compares both against a TerraME/LUCCME reference result. It generates a Markdown report and scatter plots — the primary tool for validating numerical equivalence before publishing results.
 
 ```bash
-python -m dissluc.infra.executors.lucc_benchmark_executor run \
+python -m disslucc_continuous.infra.executors.lucc_benchmark_executor run \
   --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
   --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
@@ -243,9 +243,9 @@ class MyLUCCExecutor(ModelExecutor):
 
     def run(self, record: ExperimentRecord):
         from dissmodel.core import Environment
-        from dissluc import DemandPreComputedValues, load_demand_csv
-        from dissluc.vector.potential.linear import PotentialLinearRegression
-        from dissluc.vector.allocation.clue  import AllocationClueLike
+        from disslucc_continuous import DemandPreComputedValues, load_demand_csv
+        from disslucc_continuous.vector.potential.linear import PotentialLinearRegression
+        from disslucc_continuous.vector.allocation.clue  import AllocationClueLike
 
         params = record.parameters
         gdf    = self.load(record)
@@ -352,7 +352,7 @@ max_change = 1
 
 ```bash
 # Via pip
-pip install disslucc-continuous
+pip install disslucc_continuousc-continuous
 
 # From source
 git clone https://github.com/LambdaGeo/DisSLUCC.git
@@ -368,7 +368,7 @@ pip install -e .
 
 ```
 DisSLUCC-Continuous/
-├── src/dissluc/
+├── src/disslucc_continuous/
 │   ├── __init__.py          # Main facade (exports models and schemas)
 │   ├── components/          # Science Layer (Models)
 │   │   ├── demand/

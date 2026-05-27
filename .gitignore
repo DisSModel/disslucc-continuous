@@ -6,6 +6,17 @@ dist/
 *.egg-info/
 .pytest_cache/
 .venv
-map_frames/
-raster_map_frames/
-exampls/data/output
+
+# Outputs
+outputs/
+examples/outputs/
+examples/map_frames/
+examples/raster_map_frames/
+examples/profiling_*.md
+examples/local_output.*
+
+# Benchmark
+benchmark/results/
+benchmark/data/output/
+
+map_frames

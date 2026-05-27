@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import os
 import geopandas as gpd
 
 from dissmodel.executor     import ExperimentRecord, ModelExecutor
 from dissmodel.executor.cli import run_cli
 from dissmodel.io           import load_dataset, save_dataset
 
-from disslucc.common.utils import default_output_uri
+from disslucc_continuous.common.utils import default_output_uri
 from dissmodel.io._utils import read_text
 
 class LUCCVectorExecutor(ModelExecutor):
@@ -67,10 +68,10 @@ class LUCCVectorExecutor(ModelExecutor):
         No I/O happens here.
         """
         from dissmodel.core import Environment
-        from disslucc import DemandPreComputedValues, load_demand_csv
-        from disslucc.components.potential.vector import PotentialLinearRegression
-        from disslucc.components.allocation.vector import AllocationClueLike
-        from disslucc.common.schemas import RegressionSpec, AllocationSpec
+        from disslucc_continuous import DemandPreComputedValues, load_demand_csv
+        from disslucc_continuous.components.potential.vector import PotentialLinearRegression
+        from disslucc_continuous.components.allocation.vector import AllocationClueLike
+        from disslucc_continuous.schemas.schemas import RegressionSpec, AllocationSpec
 
         spec     = record.resolved_spec.get("model", {})
         params   = record.parameters
@@ -93,18 +94,23 @@ class LUCCVectorExecutor(ModelExecutor):
             land_use_types = lu_types,
         )
 
+        # Map potential and allocation specs by land use type (order-independent)
+        potential_map  = {p.get("lu"): p for p in spec.get("potential", [])}
+        allocation_map = {a.get("lu"): a for a in spec.get("allocation", [])}
+
         potential_data = [[
             RegressionSpec(
-                const  = p["const"],
-                betas  = p.get("betas", {}),
-                is_log = p.get("is_log", False),
-            )
-            for p in spec.get("potential", [])
+                const  = potential_map[lu].get("const", 0.0),
+                betas  = potential_map[lu].get("betas", {}),
+                is_log = potential_map[lu].get("is_log", False),
+            ) if lu in potential_map else RegressionSpec(const=0.0)
+            for lu in lu_types
         ]]
 
         allocation_data = [[
-            AllocationSpec(**{k: v for k, v in a.items() if k != "lu"})
-            for a in spec.get("allocation", [])
+            AllocationSpec(**{k: v for k, v in allocation_map[lu].items() if k != "lu"})
+            if lu in allocation_map else AllocationSpec()
+            for lu in lu_types
         ]]
 
         potential = PotentialLinearRegression(
@@ -120,7 +126,7 @@ class LUCCVectorExecutor(ModelExecutor):
             demand          = demand,
             potential       = potential,
             land_use_types  = lu_types,
-            static          = spec.get("static", {}),
+            static          = {lu: spec.get("static", {}).get(lu, -1) for lu in lu_types},
             complementar_lu = spec.get("complementar_lu", lu_types[0]),
             cell_area       = spec.get("cell_area", 25.0),
             allocation_data = allocation_data,
@@ -149,6 +155,10 @@ class LUCCVectorExecutor(ModelExecutor):
             record.output_path
             or default_output_uri(record.experiment_id, ext="gpkg")
         )
+        
+        if not uri.startswith("s3://"):
+            os.makedirs(os.path.dirname(os.path.abspath(uri)), exist_ok=True)
+
         checksum = save_dataset(result, uri)
 
         record.output_path   = uri

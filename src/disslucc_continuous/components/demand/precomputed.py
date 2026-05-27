@@ -1,5 +1,5 @@
 """
-dissluc.demand.precomputed
+disslucc_continuous.demand.precomputed
 --------------------------
 Pre-computed per-step demand — substrate-neutral (no GDF dependency).
 Compatible with DemandProtocol; works with both vector and raster substrates.
@@ -81,7 +81,7 @@ class DemandPreComputedValues(Model):
     Example
     -------
     from dissmodel.io._utils import read_text
-    from disslucc import load_demand_csv, DemandPreComputedValues
+    from disslucc_continuous import load_demand_csv, DemandPreComputedValues
 
     raw    = read_text("s3://bucket/demand.csv")   # caller resolves URI
     demand = DemandPreComputedValues(

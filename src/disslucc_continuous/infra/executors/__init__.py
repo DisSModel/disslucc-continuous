@@ -1,4 +1,4 @@
-# src/dissluc/infra/executors/__init__.py
+# src/disslucc_continuous/infra/executors/__init__.py
 
 from .clue_like_raster_executor import LUCCRasterExecutor
 from .clue_like_vector_executor import LUCCVectorExecutor

@@ -1,5 +1,5 @@
 """
-dissluc/raster/allocation/clue.py
+disslucc_continuous.components.allocation.raster.clue
 ----------------------------------
 Raster version of AllocationClueLike.
 All cell operations are fully vectorized with NumPy — no per-cell loops.
@@ -7,7 +7,7 @@ All cell operations are fully vectorized with NumPy — no per-cell loops.
 from __future__ import annotations
 import numpy as np
 
-from disslucc.common.schemas import AllocationSpec
+from disslucc_continuous.schemas.schemas import AllocationSpec
 from dissmodel.geo import SyncRasterModel
 
 class AllocationClueLike(SyncRasterModel):

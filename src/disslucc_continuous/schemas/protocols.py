@@ -1,5 +1,5 @@
 """
-dissluc.core
+disslucc_continuous.schemas.protocols
 ------------
 Protocolos e classe base compartilhados entre substratos.
 """
