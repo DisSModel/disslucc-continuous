@@ -1,5 +1,5 @@
 """
-dissluc.schemas
+disslucc_continuous.schemas.schemas
 ---------------
 Dataclasses que definem os parâmetros de cada componente.
 Servem como contratos entre o usuário e os modelos — validação

@@ -2,7 +2,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from disslucc.common.schemas import AllocationSpec
+from disslucc_continuous.schemas.schemas import AllocationSpec
 from dissmodel.geo import SyncSpatialModel
 
 class AllocationClueLike(SyncSpatialModel):
