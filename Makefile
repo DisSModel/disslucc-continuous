@@ -16,12 +16,14 @@ format:
 
 run-lab1-vector:
 	python3 examples/lab1_vector.py run \
+		-t examples/model.toml \
 		--input examples/data/input/csAC.zip \
 		--param demand_csv=examples/data/input/examples_demand_lab1.csv \
 		--param interactive=True
 
 run-lab1-raster:
 	python3 examples/lab1_raster.py run \
+		-t examples/model.toml \
 		--input examples/data/input/csAC.zip \
 		--param demand_csv=examples/data/input/examples_demand_lab1.csv \
 		--param interactive=True \

@@ -18,3 +18,5 @@ examples/local_output.*
 # Benchmark
 benchmark/results/
 benchmark/data/output/
+
+map_frames
