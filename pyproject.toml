@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "disslucc-continuous"
 version = "0.2.0"
-description = "Land Use Change simulation plugin for DisSModel"
+description = "Continuous spatial LUCC models for DisSModel — CLUE-like allocation with linear regression potential"
 readme = "README.md"
 authors = [{ name = "Your Name", email = "your.email@ufma.br" }]
 license = { text = "MIT" }
@@ -18,3 +18,27 @@ dependencies = [
     "mapclassify>=2.4.0",
 ]
 requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=22.0.0",
+    "ruff>=0.0.200",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E701", "E241", "E203", "E501"]
+
+[project.entry-points."dissmodel.executors"]
+lucc_raster = "disslucc_continuous.infra.executors.clue_like_raster_executor:LUCCRasterExecutor"
+lucc_vector = "disslucc_continuous.infra.executors.clue_like_vector_executor:LUCCVectorExecutor"
+lucc_validation = "disslucc_continuous.infra.executors.lucc_benchmark_executor:LuccBenchmarkExecutor"

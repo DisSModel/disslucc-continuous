@@ -1,0 +1,198 @@
+from __future__ import annotations
+
+import os
+import geopandas as gpd
+
+from dissmodel.executor     import ExperimentRecord, ModelExecutor
+from dissmodel.executor.cli import run_cli
+from dissmodel.io           import load_dataset, save_dataset
+
+from disslucc_continuous.common.utils import default_output_uri
+from dissmodel.io._utils import read_text
+
+class LUCCVectorExecutor(ModelExecutor):
+    """
+    Executor for LUCC vector simulations (C-CLUE / GeoDataFrame).
+    Equivalent to lab1_main.py — works via CLI and platform API.
+
+    Input contract
+    --------------
+    After load(), the GeoDataFrame exposes columns named after land_use_types
+    and driver_columns from the model spec. Non-canonical column names are
+    resolved via column_map before any model sees the data.
+    """
+
+    name = "lucc_vector"
+
+    # ── public contract ───────────────────────────────────────────────────────
+
+    def load(self, record: ExperimentRecord) -> gpd.GeoDataFrame:
+        gdf, checksum = load_dataset(record.source.uri)
+        record.source.checksum = checksum
+
+        if record.column_map:
+            gdf = gdf.rename(columns={v: k for k, v in record.column_map.items()})
+
+        record.add_log(f"Loaded GDF: {len(gdf)} features  crs={gdf.crs}")
+        return gdf
+
+    def validate(self, record: ExperimentRecord) -> None:
+        """
+        Stateless pre-flight checks on the record itself — no data loading.
+
+        Verifies that column_map keys are consistent with the model spec.
+        Column-level checks (missing columns after mapping) run at the start
+        of run() after a single load(), where the cost is already paid.
+        """
+        spec        = record.resolved_spec.get("model", {})
+        lu_types    = spec.get("land_use_types", [])
+        driver_cols = spec.get("driver_columns", {}).get("cols", [])
+        expected    = set(lu_types) | set(driver_cols)
+
+        if not expected:
+            return
+
+        if record.column_map:
+            unknown = set(record.column_map) - expected
+            if unknown:
+                raise ValueError(
+                    f"column_map references columns not in model spec: {unknown}\n"
+                    f"Expected keys from spec: {expected}"
+                )
+
+    def run(self, data: gpd.GeoDataFrame, record: ExperimentRecord) -> gpd.GeoDataFrame:
+        """
+        Validate columns, then execute the LUCC simulation.
+
+        `data` is the GeoDataFrame returned by load(), injected by the platform.
+        No I/O happens here.
+        """
+        from dissmodel.core import Environment
+        from disslucc_continuous import DemandPreComputedValues, load_demand_csv
+        from disslucc_continuous.components.potential.vector import PotentialLinearRegression
+        from disslucc_continuous.components.allocation.vector import AllocationClueLike
+        from disslucc_continuous.schemas.schemas import RegressionSpec, AllocationSpec
+
+        spec     = record.resolved_spec.get("model", {})
+        params   = record.parameters
+        lu_types = spec.get("land_use_types", ["f", "d", "outros"])
+        n_steps  = params.get("n_steps", 7)
+
+        # data injected by execute_lifecycle — no I/O here
+        gdf = data
+
+        # column-level validation (only possible after load)
+        _check_columns(gdf, spec)
+
+        # ── build models ──────────────────────────────────────────────────────
+        env = Environment(end_time=n_steps - 1)
+
+        demand_raw = read_text(params["demand_csv"]) 
+
+        demand = DemandPreComputedValues(
+            annual_demand  = load_demand_csv(demand_raw, lu_types),
+            land_use_types = lu_types,
+        )
+
+        # Map potential and allocation specs by land use type (order-independent)
+        potential_map  = {p.get("lu"): p for p in spec.get("potential", [])}
+        allocation_map = {a.get("lu"): a for a in spec.get("allocation", [])}
+
+        potential_data = [[
+            RegressionSpec(
+                const  = potential_map[lu].get("const", 0.0),
+                betas  = potential_map[lu].get("betas", {}),
+                is_log = potential_map[lu].get("is_log", False),
+            ) if lu in potential_map else RegressionSpec(const=0.0)
+            for lu in lu_types
+        ]]
+
+        allocation_data = [[
+            AllocationSpec(**{k: v for k, v in allocation_map[lu].items() if k != "lu"})
+            if lu in allocation_map else AllocationSpec()
+            for lu in lu_types
+        ]]
+
+        potential = PotentialLinearRegression(
+            gdf              = gdf,
+            potential_data   = potential_data,
+            demand           = demand,
+            land_use_types   = lu_types,
+            land_use_no_data = spec.get("land_use_no_data", "outros"),
+        )
+
+        AllocationClueLike(
+            gdf             = gdf,
+            demand          = demand,
+            potential       = potential,
+            land_use_types  = lu_types,
+            static          = {lu: spec.get("static", {}).get(lu, -1) for lu in lu_types},
+            complementar_lu = spec.get("complementar_lu", lu_types[0]),
+            cell_area       = spec.get("cell_area", 25.0),
+            allocation_data = allocation_data,
+        )
+
+        if params.get("interactive", False):
+            from dissmodel.visualization import Map
+            Map(
+                gdf         = gdf,
+                plot_params = {
+                    "column": lu_types[0],
+                    "cmap":   "Greens",
+                    "scheme": "equal_interval",
+                    "k":      5,
+                    "legend": True,
+                },
+            )
+
+        record.add_log(f"Running {n_steps} steps...")
+        env.run()
+        record.add_log("Simulation complete")
+        return gdf
+
+    def save(self, result: gpd.GeoDataFrame, record: ExperimentRecord) -> ExperimentRecord:
+        uri = (
+            record.output_path
+            or default_output_uri(record.experiment_id, ext="gpkg")
+        )
+        
+        if not uri.startswith("s3://"):
+            os.makedirs(os.path.dirname(os.path.abspath(uri)), exist_ok=True)
+
+        checksum = save_dataset(result, uri)
+
+        record.output_path   = uri
+        record.output_sha256 = checksum
+        record.status        = "completed"
+        record.add_log(f"Saved to {uri}")
+        return record
+
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+
+    
+def _check_columns(gdf: gpd.GeoDataFrame, spec: dict) -> None:
+    """
+    Verify expected columns are present after column_map has been applied.
+    Runs inside run() after a single load() — not in validate().
+    """
+    lu_types    = spec.get("land_use_types", [])
+    driver_cols = spec.get("driver_columns", {}).get("cols", [])
+    expected    = set(lu_types) | set(driver_cols)
+
+    if not expected:
+        return
+
+    missing = expected - set(gdf.columns)
+
+    if missing:
+        raise ValueError(
+            f"Columns missing after column_map: {missing}\n"
+            f"Dataset columns: {sorted(gdf.columns)}\n"
+            f"Check column_map or driver_columns in model.toml."
+        )
+
+
+if __name__ == "__main__":
+    run_cli(LUCCVectorExecutor)
