@@ -1,6 +1,7 @@
 
-
-# dissmodel/executor/utils.py
+# TODO: duplicated across disslucc-continuous, disslucc-discrete and
+# brmangue-dissmodel. Should be promoted to dissmodel.executor.utils
+# (tracked separately).
 
 def default_output_uri(experiment_id: str, ext: str) -> str:
     """
