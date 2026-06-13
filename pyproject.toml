@@ -7,10 +7,10 @@ name = "disslucc-continuous"
 version = "0.2.0"
 description = "Continuous spatial LUCC models for DisSModel — CLUE-like allocation with linear regression potential"
 readme = "README.md"
-authors = [{ name = "Your Name", email = "your.email@ufma.br" }]
+authors = [{ name = "Sergio Souza Costa", email = "sergio@ufma.br" }]
 license = { text = "MIT" }
 dependencies = [
-    "dissmodel @ git+https://github.com/LambdaGeo/dissmodel.git@develop",
+    "dissmodel>=0.6.0,<0.7.0",
     "pandas>=1.5.0",
     "numpy>=1.23.0",
     "geopandas>=0.12.0",
@@ -39,6 +39,6 @@ select = ["E", "F", "I"]
 ignore = ["E701", "E241", "E203", "E501"]
 
 [project.entry-points."dissmodel.executors"]
-lucc_raster = "disslucc_continuous.infra.executors.clue_like_raster_executor:LUCCRasterExecutor"
-lucc_vector = "disslucc_continuous.infra.executors.clue_like_vector_executor:LUCCVectorExecutor"
-lucc_validation = "disslucc_continuous.infra.executors.lucc_benchmark_executor:LuccBenchmarkExecutor"
+lucc_raster = "disslucc_continuous.executors.clue_like_raster_executor:LUCCRasterExecutor"
+lucc_vector = "disslucc_continuous.executors.clue_like_vector_executor:LUCCVectorExecutor"
+lucc_benchmark = "disslucc_continuous.executors.lucc_benchmark_executor:LUCCBenchmarkExecutor"

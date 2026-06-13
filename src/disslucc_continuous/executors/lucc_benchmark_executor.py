@@ -1,11 +1,11 @@
-# src/dissluc/executor/lucc_validation_executor.py
 from __future__ import annotations
 
 import io
+import os
 import time
-import struct
 import zipfile
 import pathlib
+import tempfile
 
 import numpy as np
 import pandas as pd
@@ -31,7 +31,7 @@ from disslucc_continuous.components.potential.raster import PotentialLinearRegre
 from disslucc_continuous.components.allocation.raster import AllocationClueLike        as RasAllocation
 from disslucc_continuous.schemas.schemas import RegressionSpec, AllocationSpec
 
-# ── Defaults do Lab1 ──────────────────────────────────────────────────────────
+# ── Lab1 defaults ────────────────────────────────────────────────────────────
 
 LAND_USE_TYPES   = ["f", "d", "outros"]
 LAND_USE_NO_DATA = "outros"
@@ -56,7 +56,7 @@ ALLOCATION_DATA = [[
 ]]
 
 
-class LuccBenchmarkExecutor(ModelExecutor):
+class LUCCBenchmarkExecutor(ModelExecutor):
     """
     Validation executor for CLUE-like LUCC modeling (Lab1).
     Compares Vector execution, Raster execution, and a TerraME reference dataset.
@@ -69,7 +69,7 @@ class LuccBenchmarkExecutor(ModelExecutor):
     - terrame_reference (str): Path to TerraME ZIP file
     """
 
-    name = "lucc_validation"
+    name = "lucc_benchmark"
 
     # ── public contract ───────────────────────────────────────────────────────
 
@@ -144,8 +144,6 @@ class LuccBenchmarkExecutor(ModelExecutor):
         record.add_log(f"Running Raster Model ({n_steps} steps)...")
         backend, rows, cols = _build_mock_raster(gdf_orig)
         env_ras = Environment(start_time=1, end_time=n_steps)
-        
-        
 
         demand  = DemandPreComputedValues(
             annual_demand  = load_demand_csv(read_text(demand_csv), LAND_USE_TYPES),
@@ -220,7 +218,7 @@ class LuccBenchmarkExecutor(ModelExecutor):
     def save(self, result: dict, record: ExperimentRecord) -> ExperimentRecord:
         base_uri = (
             record.output_path
-            or f"{settings.default_output_base}/experiments/{record.experiment_id}/lucc_validation"
+            or f"{settings.default_output_base}/experiments/{record.experiment_id}/lucc_benchmark"
         )
 
         record.add_artifact(
@@ -295,36 +293,21 @@ def _build_mock_raster(gdf: gpd.GeoDataFrame) -> tuple[RasterBackend, np.ndarray
 
 
 def _load_terrame(path: pathlib.Path) -> pd.DataFrame:
+    # Extract DBF from ZIP and read via geopandas (avoids manual struct parsing)
     with zipfile.ZipFile(path) as z:
-        dbf = z.read("Lab1_2014.dbf")
+        with z.open("Lab1_2014.dbf") as f:
+            data = f.read()
 
-    nrecords    = struct.unpack_from("<I", dbf, 4)[0]
-    header_size = struct.unpack_from("<H", dbf, 8)[0]
-    record_size = struct.unpack_from("<H", dbf, 10)[0]
+    with tempfile.NamedTemporaryFile(suffix=".dbf", delete=False) as tmp:
+        tmp.write(data)
+        tmp_path = tmp.name
 
-    fields, foffsets, cur = [], [], 1
-    offset = 32
-    while dbf[offset] != 0x0D:
-        name  = dbf[offset:offset+11].rstrip(b"\x00").decode()
-        ftype = chr(dbf[offset+11])
-        flen  = dbf[offset+16]
-        fields.append((name, ftype, flen))
-        foffsets.append(cur)
-        cur += flen
-        offset += 32
+    try:
+        gdf = gpd.read_file(tmp_path)
+    finally:
+        os.unlink(tmp_path)
 
-    def val(rec, idx):
-        _, _, flen = fields[idx]
-        raw = rec[foffsets[idx]: foffsets[idx]+flen].decode("latin1").strip()
-        try:    return float(raw)
-        except: return raw
-
-    rows = []
-    for i in range(nrecords):
-        rec = dbf[header_size + i*record_size : header_size + (i+1)*record_size]
-        rows.append({fields[j][0]: val(rec, j) for j in range(len(fields))})
-
-    df = pd.DataFrame(rows)
+    df = gdf[["row", "col", "d_out"]].copy()
     df["row"] = df["row"].astype(int)
     df["col"] = df["col"].astype(int)
     return df.set_index(["row", "col"])
@@ -350,5 +333,9 @@ def _build_markdown(n_steps: int, tol: float, vec_ms: float, ras_ms: float, metr
     return "".join(lines)
 
 
+# Backward-compat alias
+LuccBenchmarkExecutor = LUCCBenchmarkExecutor
+
+
 if __name__ == "__main__":
-    run_cli(LuccBenchmarkExecutor)
+    run_cli(LUCCBenchmarkExecutor)

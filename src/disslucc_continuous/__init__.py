@@ -13,19 +13,25 @@ from .components.potential.vector import PotentialLinearRegression as PotentialV
 from .components.allocation.raster import AllocationClueLike as AllocationRaster
 from .components.allocation.vector import AllocationClueLike as AllocationVector
 
+# Aliases matching README examples
+PotentialLinearRegression = PotentialVector
+AllocationClueLike = AllocationVector
+
 # Re-exporting from schemas
 from .schemas.schemas        import RegressionSpec, AllocationSpec
 from .schemas.protocols      import DemandProtocol, PotentialProtocol
 
 # Registra os executors no ExecutorRegistry via __init_subclass__
-from .infra.executors import LUCCRasterExecutor, LUCCVectorExecutor, LuccBenchmarkExecutor  # noqa: F401
+from .executors import LUCCRasterExecutor, LUCCVectorExecutor, LUCCBenchmarkExecutor, LuccBenchmarkExecutor  # noqa: F401
 
 __all__ = [
     "DemandPreComputedValues",
     "PotentialRaster",
     "PotentialVector",
+    "PotentialLinearRegression",
     "AllocationRaster",
     "AllocationVector",
+    "AllocationClueLike",
     "RegressionSpec",
     "AllocationSpec",
     "DemandProtocol",
@@ -34,5 +40,6 @@ __all__ = [
     # Executors expostos para quem precisar instanciar diretamente
     "LUCCRasterExecutor",
     "LUCCVectorExecutor",
+    "LUCCBenchmarkExecutor",
     "LuccBenchmarkExecutor",
 ]
