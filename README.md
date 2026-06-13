@@ -2,7 +2,7 @@
 
 > **Continuous Spatial Library for Land Use Change Modeling** — A Python implementation of continuous LUCC modeling components (LUCCME-like), built on top of [DissModel](https://github.com/LambdaGeo/dissmodel)
 
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://python.org)
 [![LambdaGeo](https://img.shields.io/badge/LambdaGeo-Research-green.svg)](https://github.com/LambdaGeo)
 
@@ -62,7 +62,7 @@ python lab1_raster.py run \
 python lab1_raster.py validate --input data/input/csAC.zip
 
 # Run the Benchmark suite (Vector vs Raster vs TerraME/LUCCME comparison)
-python -m disslucc_continuous.infra.executors.lucc_benchmark_executor run \
+python -m disslucc_continuous.executors.lucc_benchmark_executor run \
   --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
   --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
@@ -206,7 +206,7 @@ Infrastructure Layer (ModelExecutor)
 The `LUCCBenchmarkExecutor` is a meta-executor that runs vector and raster substrates in a single pass and compares both against a TerraME/LUCCME reference result. It generates a Markdown report and scatter plots — the primary tool for validating numerical equivalence before publishing results.
 
 ```bash
-python -m disslucc_continuous.infra.executors.lucc_benchmark_executor run \
+python -m disslucc_continuous.executors.lucc_benchmark_executor run \
   --input  examples/data/input/csAC.zip \
   --output ./benchmark/ \
   --param  demand_csv=examples/data/input/examples_demand_lab1.csv \
@@ -244,8 +244,8 @@ class MyLUCCExecutor(ModelExecutor):
     def run(self, record: ExperimentRecord):
         from dissmodel.core import Environment
         from disslucc_continuous import DemandPreComputedValues, load_demand_csv
-        from disslucc_continuous.vector.potential.linear import PotentialLinearRegression
-        from disslucc_continuous.vector.allocation.clue  import AllocationClueLike
+        from disslucc_continuous.components.potential.vector.linear import PotentialLinearRegression
+        from disslucc_continuous.components.allocation.vector.clue  import AllocationClueLike
 
         params = record.parameters
         gdf    = self.load(record)
@@ -351,14 +351,12 @@ max_change = 1
 ## 📦 Installation
 
 ```bash
-# Via pip
-pip install disslucc_continuousc-continuous
-
-# From source
-git clone https://github.com/LambdaGeo/DisSLUCC.git
-cd DisSLUCC
+git clone https://github.com/DisSModel/disslucc-continuous.git
+cd disslucc-continuous
 pip install -e .
 ```
+
+> **Note:** PyPI publication is planned once the package reaches a stable API (tracked alongside the JOSS submission).
 
 **Dependencies:** `dissmodel`, `geopandas`, `shapely`, `pandas`, `numpy`, `rasterio`, `matplotlib`
 
@@ -378,11 +376,10 @@ DisSLUCC-Continuous/
 │   │   └── allocation/
 │   │       ├── raster/
 │   │       └── vector/
-│   ├── infra/               # Infrastructure Layer (Executors)
-│   │   └── executors/
-│   │       ├── clue_like_raster_executor.py
-│   │       ├── clue_like_vector_executor.py
-│   │       └── lucc_benchmark_executor.py
+│   ├── executors/           # Infrastructure Layer (Executors)
+│   │   ├── clue_like_raster_executor.py
+│   │   ├── clue_like_vector_executor.py
+│   │   └── lucc_benchmark_executor.py
 │   └── common/              # Common Layer (Schemas and Protocols)
 │       ├── schemas.py       # RegressionSpec, AllocationSpec
 │       └── protocols.py     # Component interfaces
@@ -404,6 +401,29 @@ DisSLUCC-Continuous/
 4. **Two substrates** — Same algorithms available for vector (GeoDataFrame) and raster (RasterBackend/NumPy).
 5. **Executor pattern** — Science layer never knows about files or cloud; infrastructure layer never calculates spatial equations.
 6. **Benchmark-first validation** — `lucc_benchmark` validates numerical equivalence between substrates and against TerraME/LUCCME reference results before any production use.
+
+---
+
+## 🧪 Testing & Validation
+
+The primary validation strategy is numerical comparison against TerraME/LUCCME reference outputs via the `lucc_benchmark` executor, which runs both Vector and Raster substrates in a single pass and reports MAE, RMSE, and match% for each comparison pair:
+
+| Comparison | What it checks |
+|---|---|
+| `Vector_vs_TerraME` | Python vector model vs original LUCCME/TerraME result |
+| `Raster_vs_TerraME` | Python raster model vs original LUCCME/TerraME result |
+| `Vector_vs_Raster` | Internal consistency between substrates |
+
+Run the full test suite (benchmark validation + unit tests):
+
+```bash
+pytest tests/ -v
+```
+
+The benchmark test (`tests/test_benchmark_validation.py`) uses:
+- **Input**: `examples/data/input/csAC.zip` + `examples/data/input/examples_demand_lab1.csv`
+- **Reference**: `benchmark/data/LUCCME_Lab1_2014.zip`
+- **Assertion**: MAE and RMSE below `tolerance=0.01` for `Vector_vs_TerraME` and `Raster_vs_TerraME`
 
 ---
 
@@ -430,7 +450,7 @@ To register a new model in the platform, open a PR in [dissmodel-configs](https:
 
 ## 📄 License
 
-Distributed under the **GPL-3.0 License**. Developed by the **[LambdaGeo](https://github.com/LambdaGeo)** research group.
+Distributed under the **MIT License**. Developed by the **[LambdaGeo](https://github.com/LambdaGeo)** research group.
 
 ---
 

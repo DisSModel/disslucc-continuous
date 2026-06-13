@@ -18,5 +18,11 @@ examples/local_output.*
 # Benchmark
 benchmark/results/
 benchmark/data/output/
+benchmark/simulacao_*.record.json
+benchmark/simulacao_*.tif/
+benchmark/profiling_*.md
+
+# Examples outputs
+examples/experiment_record.json
 
 map_frames
