@@ -24,5 +24,6 @@ benchmark/profiling_*.md
 
 # Examples outputs
 examples/experiment_record.json
+examples/data/output/
 
 map_frames
