@@ -249,7 +249,7 @@ class MyLUCCExecutor(ModelExecutor):
 
         params = record.parameters
         gdf    = self.load(record)
-        env    = Environment(end_time=params.get("n_steps", 7) - 1)
+        env    = Environment(end_time=params.get("end_time", 6))  # inclusive (dissmodel >= 0.6.0): runs steps 0..end_time
 
         demand    = DemandPreComputedValues(...)
         potential = PotentialLinearRegression(gdf=gdf, ...)
