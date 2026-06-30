@@ -1,10 +1,10 @@
 # DisSLUCC-Continuous 🌍
 
-> **Continuous Spatial Library for Land Use Change Modeling** — A Python implementation of continuous LUCC modeling components (LUCCME-like), built on top of [DissModel](https://github.com/LambdaGeo/dissmodel)
+> **Continuous Spatial Library for Land Use Change Modeling** — A Python implementation of continuous LUCC modeling components (LUCCME-like), built on top of [DisSModel](https://github.com/DisSModel/dissmodel)
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://python.org)
-[![LambdaGeo](https://img.shields.io/badge/LambdaGeo-Research-green.svg)](https://github.com/LambdaGeo)
+[![LambdaGeo](https://img.shields.io/badge/LambdaGeo-Research-green.svg)](https://github.com/DisSModel)
 
 ---
 
@@ -25,12 +25,12 @@ DisSLUCC-Continuous focus on **continuous** land use change (area/percentage per
 ┌─────────────────────────────────────┐     ┌─────────────────────────────────────┐
 │  Original Stack (INPE/CCST)         │     │  LambdaGeo Stack                    │
 │  ┌───────────┐  ┌───────────┐       │     │  ┌───────────┐  ┌───────────┐       │
-│  │  TerraME  │→ │  LUCCME   │       │  →  │  │ DissModel │→ │  DisSLUCC │       │
+│  │  TerraME  │→ │  LUCCME   │       │  →  │  │ DisSModel │→ │  DisSLUCC │       │
 │  │(framework)│  │(LUCC dom.)│       │     │  │(framework)│  │(continuous)       │
 │  └───────────┘  └───────────┘       │     │  └───────────┘  └───────────┘       │
 └─────────────────────────────────────┘     └─────────────────────────────────────┘
 
-> ℹ️ **Note**: Both the Python package name and repository name are **DisSLUCC-Continuous** (`disslucc_continuous` for imports).
+> ℹ️ **Note**: Both the Python package name and repository name are **DisSLUCC-Continuous** (`disslucc_continuous` for imports). "DisSModel" is spelled with a capital S in the middle, standing for **S**patial.
 
 ---
 
@@ -181,7 +181,7 @@ AllocationClueLike(
 
 ## 🗂️ Executor Architecture
 
-DisSLUCC follows the DissModel `ModelExecutor` pattern — each executor separates science from infrastructure. The same model runs locally via CLI or on the platform via API without changing a single line.
+DisSLUCC follows the DisSModel `ModelExecutor` pattern — each executor separates science from infrastructure. The same model runs locally via CLI or on the platform via API without changing a single line.
 
 ```
 Science Layer (Model / Salabim)
@@ -249,7 +249,7 @@ class MyLUCCExecutor(ModelExecutor):
 
         params = record.parameters
         gdf    = self.load(record)
-        env    = Environment(end_time=params.get("end_time", 6))  # inclusive (dissmodel >= 0.6.0): runs steps 0..end_time
+        env    = Environment(end_time=params.get("n_steps", 7) - 1)
 
         demand    = DemandPreComputedValues(...)
         potential = PotentialLinearRegression(gdf=gdf, ...)
@@ -434,7 +434,7 @@ The benchmark test (`tests/test_benchmark_validation.py`) uses:
 - **Demand–Potential–Allocation framework**: Verburg et al. (2004, 2006)
 - **Validation metric**: Multi-resolution similarity (Costanza, 1989)
 
-> ⚠️ **Disclaimer**: DisSLUCC is **not** an official fork or extension of LUCCME/TerraME. It is an independent Python implementation that preserves the original philosophy and algorithms, adapted to the DissModel architecture.
+> ⚠️ **Disclaimer**: DisSLUCC is **not** an official fork or extension of LUCCME/TerraME. It is an independent Python implementation that preserves the original philosophy and algorithms, adapted to the DisSModel architecture.
 
 ---
 
@@ -444,15 +444,14 @@ The benchmark test (`tests/test_benchmark_validation.py`) uses:
 2. Implement changes and add tests
 3. Submit a Pull Request with a clear description
 
-To register a new model in the platform, open a PR in [dissmodel-configs](https://github.com/LambdaGeo/dissmodel-configs) with a TOML spec pointing to your package.
+To register a new model in the platform, open a PR in [dissmodel-configs](https://github.com/DisSModel/dissmodel-configs) with a TOML spec pointing to your package.
 
 ---
 
 ## 📄 License
 
-Distributed under the **MIT License**. Developed by the **[LambdaGeo](https://github.com/LambdaGeo)** research group.
+Distributed under the **MIT License**. Developed by the **[LambdaGeo](https://lambdageo.github.io)** research group.
 
 ---
 
 *Built with ❤️ for the open-source environmental modeling community.* 🌱🔬
-
