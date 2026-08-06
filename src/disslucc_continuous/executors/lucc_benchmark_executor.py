@@ -240,12 +240,35 @@ class LUCCBenchmarkExecutor(ModelExecutor):
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def _metrics(a: np.ndarray, b: np.ndarray, tol: float) -> dict:
+    """Agreement metrics between two continuous fields.
+
+    Includes the Pontius & Millones (2011) decomposition adapted to the
+    continuous case, splitting the error into two components:
+
+    * ``quantity_disagreement`` — difference in totals. Answers "did the model
+      allocate the right *amount*?".
+    * ``allocation_disagreement`` — residual error after matching the totals.
+      Answers "did the model put it in the right *place*?".
+
+    The identity ``quantity + allocation == mae`` holds. A low MAE can mask
+    either a systematic quantity bias or a spatially wrong allocation, which
+    is why the decomposition matters.
+    """
     diff = np.abs(a - b)
+    mae  = float(diff.mean())
+
+    # Pontius & Millones (2011), continuous form.
+    # |mean(a) - mean(b)| <= mean|a - b|, so allocation is always >= 0.
+    quantity   = float(abs(a.mean() - b.mean()))
+    allocation = float(mae - quantity)
+
     return {
         "match_pct": float((diff <= tol).mean() * 100),
-        "mae":       float(diff.mean()),
+        "mae":       mae,
         "rmse":      float(np.sqrt((diff**2).mean())),
         "max_err":   float(diff.max()),
+        "quantity_disagreement":   quantity,
+        "allocation_disagreement": allocation,
         "n_cells":   len(a),
     }
 
@@ -322,14 +345,27 @@ def _build_markdown(n_steps: int, tol: float, vec_ms: float, ras_ms: float, metr
         f"| Vector | {vec_ms:.1f} | 1× |\n",
         f"| Raster | {ras_ms:.1f} | {vec_ms/ras_ms:.1f}× |\n\n",
         "## Accuracy — `d`\n\n",
-        "| Comparison | Match % | MAE | RMSE | Max err | N cells |\n",
-        "|---|---|---|---|---|---|\n",
+        "| Comparison | Match % | MAE | Quantity | Allocation | RMSE | Max err | N cells |\n",
+        "|---|---|---|---|---|---|---|---|\n",
     ]
     for label, m in metrics.items():
         lines.append(
             f"| {label.replace('_', ' ')} | {m['match_pct']:.2f}% | {m['mae']:.6f} | "
+            f"{m['quantity_disagreement']:.6f} | {m['allocation_disagreement']:.6f} | "
             f"{m['rmse']:.6f} | {m['max_err']:.6f} | {m['n_cells']} |\n"
         )
+    lines.append(
+        "\n> **Reading these numbers.** `Match %` and `MAE` answer different questions —\n"
+        "> a low MAE coexists with a sizeable tail outside tolerance, so report both.\n"
+        "> `Quantity` and `Allocation` are the Pontius & Millones (2011) decomposition:\n"
+        "> error in *how much* was allocated vs. error in *where*.\n"
+        "> `Quantity + Allocation = MAE`.\n"
+        ">\n"
+        "> **`Vector vs Raster` is not a spatial check.** Neither substrate uses\n"
+        "> neighbourhood operations — both are element-wise arithmetic over the same\n"
+        "> values, merely reshaped. Exact agreement here confirms consistent reshaping,\n"
+        "> not spatial correctness.\n"
+    )
     return "".join(lines)
 
 
