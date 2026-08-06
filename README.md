@@ -203,7 +203,7 @@ Infrastructure Layer (ModelExecutor)
 
 ### Benchmark executor
 
-The `LUCCBenchmarkExecutor` is a meta-executor that runs vector and raster substrates in a single pass and compares both against a TerraME/LUCCME reference result. It generates a Markdown report and scatter plots — the primary tool for validating numerical equivalence before publishing results.
+The `LUCCBenchmarkExecutor` is a meta-executor that runs vector and raster substrates in a single pass and compares both against a TerraME/LUCCME reference result. It generates a Markdown report and scatter plots — the primary tool for quantifying agreement with the reference before publishing results. See “Interpreting the numbers” below: the output is an agreement measurement, not a claim of cell-by-cell equivalence.
 
 ```bash
 python -m disslucc_continuous.executors.lucc_benchmark_executor run \
@@ -400,7 +400,7 @@ DisSLUCC-Continuous/
 3. **Reproducibility** — Each experiment records model commit, input checksum, and resolved spec via `ExperimentRecord`.
 4. **Two substrates** — Same algorithms available for vector (GeoDataFrame) and raster (RasterBackend/NumPy).
 5. **Executor pattern** — Science layer never knows about files or cloud; infrastructure layer never calculates spatial equations.
-6. **Benchmark-first validation** — `lucc_benchmark` validates numerical equivalence between substrates and against TerraME/LUCCME reference results before any production use.
+6. **Benchmark-first validation** — `lucc_benchmark` quantifies agreement against TerraME/LUCCME reference results, and `tests/test_benchmark_discriminance.py` verifies that the benchmark actually constrains the implementation, before any production use.
 
 ---
 
@@ -412,7 +412,7 @@ The primary validation strategy is numerical comparison against TerraME/LUCCME r
 |---|---|
 | `Vector_vs_TerraME` | Python vector model vs original LUCCME/TerraME result |
 | `Raster_vs_TerraME` | Python raster model vs original LUCCME/TerraME result |
-| `Vector_vs_Raster` | Internal consistency between substrates |
+| `Vector_vs_Raster` | Consistency of array reshaping between substrates (see caveat below) |
 
 Run the full test suite (benchmark validation + unit tests):
 
@@ -424,6 +424,56 @@ The benchmark test (`tests/test_benchmark_validation.py`) uses:
 - **Input**: `examples/data/input/csAC.zip` + `examples/data/input/examples_demand_lab1.csv`
 - **Reference**: `benchmark/data/LUCCME_Lab1_2014.zip`
 - **Assertion**: MAE and RMSE below `tolerance=0.01` for `Vector_vs_TerraME` and `Raster_vs_TerraME`
+
+`tests/test_benchmark_discriminance.py` complements this by checking that the
+benchmark actually constrains the implementation: perturbing the regression
+coefficients (halved, doubled, zeroed, sign-flipped) must break the tolerance
+criterion, and a do-nothing baseline must fail it too. All of these hold — the
+Lab1 scenario is genuinely discriminative.
+
+### Interpreting the numbers
+
+| Metric | What it means |
+|---|---|
+| `MAE` / `RMSE` | Averages. Low values coexist with a sizeable tail outside tolerance — never report them alone. |
+| `Match %` | Fraction of cells within `tolerance`. Currently **87.37%** for `Vector_vs_TerraME`, i.e. ~830 cells (12.63%) differ by more than 0.01, with a max error of 0.027. |
+| `Quantity` / `Allocation` | Pontius & Millones (2011) decomposition. `Quantity` is error in the total allocated; `Allocation` is error in *where* it was put. `Quantity + Allocation = MAE`. |
+
+Because of the above, the accurate phrasing for this result is **"agreement with
+MAE below 0.01, with 87% of cells within ±0.01 and a maximum error of 0.027"** —
+not "numerical equivalence", which would imply cell-by-cell parity.
+
+> ### ⚠️ `Vector_vs_Raster` is not a spatial check
+>
+> The exact agreement between substrates is real — they are independent runs, with
+> separate `Environment` instances and a raster backend built from actual `row`/`col`
+> values. But there are **no neighbourhood operations anywhere** in `src/`: both
+> substrates are purely element-wise arithmetic over the same numbers, merely
+> reshaped. This row confirms that NumPy reshapes correctly; it says nothing about
+> spatial behaviour, and should not be read as a third independent validation.
+
+> ### Convergence tolerance — read before interpreting `n_steps` sweeps
+>
+> The original LuccME script declares `maxDifference = 1643` in
+> `AllocationCClueLike`, in area units, against a 2014 demand of 21607.38 for
+> class `d` — a **7.6% convergence band**. The Python defaults match it exactly.
+>
+> This band is wide enough that the reference itself stops 1001.45 area units
+> short of the demand it declares. That is legitimate convergence slack, not a
+> defect. It also means Python and TerraME can each halt at different, equally
+> valid points inside the band, which is why the fit varies non-monotonically
+> with `n_steps` (best at 4, official at 6). Sweeps over `n_steps` should not be
+> read as evidence of temporal misalignment.
+>
+> Consistently with this, the Pontius decomposition at the official
+> configuration is ~90% quantity and ~10% allocation: the model places
+> deforestation in nearly the right cells and misses on the total. Both facts
+> are asserted in `tests/test_benchmark_discriminance.py`.
+
+### Coverage limits
+
+The comparison covers **only the `d` band at the final step**. The `f` and `outros`
+classes are never compared against TerraME, and neither are intermediate steps.
 
 ---
 
