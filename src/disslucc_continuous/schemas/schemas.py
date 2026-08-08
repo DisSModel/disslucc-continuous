@@ -2,7 +2,7 @@
 disslucc_continuous.schemas.schemas
 ---------------
 Dataclasses que definem os parâmetros de cada componente.
-Servem como contratos entre o usuário e os modelos — validação
+They act as contracts between the user and the models — validation
 acontece aqui, os modelos só consomem.
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ class RegressionSpec:
 
 @dataclass
 class AllocationSpec:
-    """Restrições de alocação para um uso do solo."""
+    """Allocation constraints for a land-use class."""
     static:     int   = -1   # -1 = respeita demanda | 0 = livre | 1 = fixo
     min_value:  float = 0.0
     max_value:  float = 1.0
