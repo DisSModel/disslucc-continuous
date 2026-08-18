@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 from disslucc_continuous.schemas.schemas import AllocationSpec
+from disslucc_continuous.schemas.protocols import DemandProtocol, PotentialProtocol
 from dissmodel.geo import SyncSpatialModel
 
 class AllocationClueLike(SyncSpatialModel):
@@ -21,8 +22,8 @@ class AllocationClueLike(SyncSpatialModel):
 
     def setup(
         self,
-        demand,
-        potential,
+        demand:              DemandProtocol,
+        potential:           PotentialProtocol,
         land_use_types:     list[str],
         static:             dict[str, int],
         complementar_lu:    str,
@@ -95,7 +96,7 @@ class AllocationClueLike(SyncSpatialModel):
         """
         for lu_idx, lu in enumerate(self.land_use_types):
             lu_dir  = self.demand.get_current_lu_direction(lu_idx)
-            pot     = self.gdf[lu + "_pot"]
+            pot     = self.potential.get_potential(lu)
             past    = self.gdf[lu + "_past"]
             alloc   = self.allocation_data[lu_idx]
             lu_stat = self.static[lu]
@@ -279,3 +280,30 @@ class AllocationClueLike(SyncSpatialModel):
                 for idx in self.gdf.index[needs_fix]:
                     bl = biggest_lu[idx]
                     self.gdf.at[idx, bl] = max(0.0, self.gdf.at[idx, bl] - deficit[idx])
+
+    # ── factory: build from a resolved model spec (TOML) ────────────────────
+
+    @classmethod
+    def from_spec(cls, spec: dict, *, demand, potential, land_use_types: list[str], gdf, **_ignored):
+        """
+        Build an AllocationClueLike from a resolved `[model]` spec dict.
+        Reads `spec["allocation"]`, `spec["static"]`, `spec["complementar_lu"]`
+        and `spec["cell_area"]` — the same fields the executors already parsed
+        inline before this factory existed.
+        """
+        allocation_map = {a.get("lu"): a for a in spec.get("allocation", [])}
+        allocation_data = [[
+            AllocationSpec(**{k: v for k, v in allocation_map[lu].items() if k != "lu"})
+            if lu in allocation_map else AllocationSpec()
+            for lu in land_use_types
+        ]]
+        return cls(
+            gdf             = gdf,
+            demand          = demand,
+            potential       = potential,
+            land_use_types  = land_use_types,
+            static          = {lu: spec.get("static", {}).get(lu, -1) for lu in land_use_types},
+            complementar_lu = spec.get("complementar_lu", land_use_types[0]),
+            cell_area       = spec.get("cell_area", 25.0),
+            allocation_data = allocation_data,
+        )

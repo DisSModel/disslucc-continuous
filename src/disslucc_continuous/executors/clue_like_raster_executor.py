@@ -31,9 +31,15 @@ class LUCCRasterExecutor(ModelExecutor):
         params      = record.parameters
         lu_types    = spec.get("land_use_types", ["f", "d", "outros"])
         driver_cols = spec.get("driver_columns", {}).get("cols", [])
+        # potential_columns is generic across strategies (e.g. suitability
+        # arrays for potential_strategy="precomputed"); rasterize it here
+        # too since load() only runs once and strategy resolution happens
+        # later in run(), after rasterization has already paid its cost.
+        extra_cols  = set(spec.get("potential_columns", {}).values())
 
         attrs = {lu: 0.0 for lu in lu_types}
         attrs.update({col: 0.0 for col in driver_cols})
+        attrs.update({col: 0.0 for col in extra_cols})
 
         gdf, checksum = load_dataset(record.source.uri)
         record.source.checksum = checksum
@@ -86,70 +92,59 @@ class LUCCRasterExecutor(ModelExecutor):
 
         `data` is the RasterBackend returned by load(), injected by the platform.
         No I/O happens here — rasterization is done once in load().
+
+        Like the vector executor, this one resolves Potential/Allocation via
+        `model.potential_strategy` / `model.allocation_strategy` in the spec
+        instead of importing a concrete class — see
+        `disslucc_continuous.components.registry`.
         """
         from dissmodel.core import Environment
-        from disslucc_continuous import DemandPreComputedValues, load_demand_csv
-        from disslucc_continuous.components.potential.raster import PotentialLinearRegression
-        from disslucc_continuous.components.allocation.raster import AllocationClueLike
-        from disslucc_continuous.schemas.schemas import RegressionSpec, AllocationSpec
+        from disslucc_continuous.components.registry import (
+            resolve_potential,
+            resolve_allocation,
+            resolve_demand,
+            DEFAULT_POTENTIAL_STRATEGY,
+            DEFAULT_ALLOCATION_STRATEGY,
+            DEFAULT_DEMAND_STRATEGY,
+        )
 
-        spec     = record.resolved_spec.get("model", {})
         params   = record.parameters
+        # See the identical comment in clue_like_vector_executor.py — TOML's
+        # [model.parameters] table doesn't get promoted into resolved_spec
+        # by dissmodel's CLI loader; merge it here explicitly.
+        spec     = {**record.resolved_spec.get("model", {}), **params}
         lu_types = spec.get("land_use_types", ["f", "d", "outros"])
         n_steps  = params.get("n_steps", 7)
 
         # data injected by execute_lifecycle — no I/O here
         backend = data
 
+        potential_strategy_name  = spec.get("potential_strategy", DEFAULT_POTENTIAL_STRATEGY)
+        allocation_strategy_name = spec.get("allocation_strategy", DEFAULT_ALLOCATION_STRATEGY)
+        demand_strategy_name     = spec.get("demand_strategy", DEFAULT_DEMAND_STRATEGY)
+        PotentialCls  = resolve_potential(potential_strategy_name, "raster")
+        AllocationCls = resolve_allocation(allocation_strategy_name, "raster")
+        DemandCls     = resolve_demand(demand_strategy_name, "raster")
+
         # band-level validation (only possible after rasterization)
-        _check_bands(backend, spec)
+        _check_bands(backend, spec, extra_required=_strategy_required_columns(PotentialCls, spec, lu_types))
 
         # ── build models ──────────────────────────────────────────────────────
         env = Environment(end_time=n_steps - 1)
 
-        demand_raw = read_text(params["demand_csv"]) 
+        demand_csv_uri = params.get("demand_csv") if demand_strategy_name == "csv" else None
+        demand_raw     = read_text(demand_csv_uri) if demand_csv_uri else None
 
-        demand = DemandPreComputedValues(
-            annual_demand  = load_demand_csv(demand_raw, lu_types),
-            land_use_types = lu_types,
+        demand = DemandCls.from_spec(
+            spec, land_use_types=lu_types, demand_raw=demand_raw,
         )
 
-        # Map potential and allocation specs by land use type (order-independent)
-        potential_map  = {p.get("lu"): p for p in spec.get("potential", [])}
-        allocation_map = {a.get("lu"): a for a in spec.get("allocation", [])}
-
-        potential_data = [[
-            RegressionSpec(
-                const  = potential_map[lu].get("const", 0.0),
-                betas  = potential_map[lu].get("betas", {}),
-                is_log = potential_map[lu].get("is_log", False),
-            ) if lu in potential_map else RegressionSpec(const=0.0)
-            for lu in lu_types
-        ]]
-
-        allocation_data = [[
-            AllocationSpec(**{k: v for k, v in allocation_map[lu].items() if k != "lu"})
-            if lu in allocation_map else AllocationSpec()
-            for lu in lu_types
-        ]]
-
-        potential = PotentialLinearRegression(
-            backend          = backend,
-            potential_data   = potential_data,
-            demand           = demand,
-            land_use_types   = lu_types,
-            land_use_no_data = spec.get("land_use_no_data", "outros"),
+        potential = PotentialCls.from_spec(
+            spec, demand=demand, land_use_types=lu_types, backend=backend,
         )
 
-        AllocationClueLike(
-            backend         = backend,
-            demand          = demand,
-            potential       = potential,
-            land_use_types  = lu_types,
-            static          = {lu: spec.get("static", {}).get(lu, -1) for lu in lu_types},
-            complementar_lu = spec.get("complementar_lu", lu_types[0]),
-            cell_area       = spec.get("cell_area", 25.0),
-            allocation_data = allocation_data,
+        AllocationCls.from_spec(
+            spec, demand=demand, potential=potential, land_use_types=lu_types, backend=backend,
         )
 
         if params.get("interactive", False):
@@ -165,6 +160,11 @@ class LUCCRasterExecutor(ModelExecutor):
                 mask_value = 0,
             )
 
+        record.add_log(
+            f"potential_strategy={potential_strategy_name} "
+            f"allocation_strategy={allocation_strategy_name} "
+            f"demand_strategy={demand_strategy_name}"
+        )
         record.add_log(f"Running {n_steps} steps...")
         env.run()
         record.add_log("Simulation complete")
@@ -195,14 +195,24 @@ class LUCCRasterExecutor(ModelExecutor):
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-def _check_bands(backend, spec: dict) -> None:
+def _strategy_required_columns(strategy_cls, spec: dict, lu_types: list[str]) -> set[str]:
+    """
+    Ask the chosen potential strategy for any bands it needs beyond
+    land_use_types/driver_columns. Strategies that don't declare extra
+    requirements simply don't implement this classmethod.
+    """
+    hook = getattr(strategy_cls, "required_columns", None)
+    return set(hook(spec, lu_types)) if hook else set()
+
+
+def _check_bands(backend, spec: dict, extra_required: set[str] | None = None) -> None:
     """
     Verify expected bands are present after rasterization.
     Runs inside run() after a single load() — not in validate().
     """
     lu_types    = spec.get("land_use_types", [])
     driver_cols = spec.get("driver_columns", {}).get("cols", [])
-    expected    = set(lu_types) | set(driver_cols)
+    expected    = set(lu_types) | set(driver_cols) | (extra_required or set())
 
     if not expected:
         return
@@ -213,7 +223,8 @@ def _check_bands(backend, spec: dict) -> None:
     if missing:
         raise ValueError(
             f"Bands missing after rasterization: {missing}\n"
-            f"Check column_map or driver_columns in model.toml."
+            f"Check column_map, driver_columns, or the fields required by "
+            f"the chosen potential_strategy in model.toml."
         )
 
 

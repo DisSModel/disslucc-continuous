@@ -84,3 +84,44 @@ class PotentialLinearRegression(SyncSpatialModel):
         else:
             spec.newconst += 0.1 * direction
         self._compute_potential(r_number, lu_idx)
+
+    # ── PotentialProtocol ────────────────────────────────────────────────────
+
+    def get_potential(self, lu: str):
+        """
+        Expõe o potencial já calculado para `lu` sem que o chamador
+        (Allocation) precise conhecer a convenção de coluna `<lu>_pot`.
+        """
+        return self.gdf[lu + "_pot"]
+
+    # ── factory: build from a resolved model spec (TOML) ────────────────────
+
+    @classmethod
+    def from_spec(cls, spec: dict, *, demand, land_use_types: list[str], gdf, **_ignored):
+        """
+        Build a PotentialLinearRegression from a resolved `[model]` spec dict.
+
+        Reads `spec["potential"]` — a list of {lu, const, betas, is_log}
+        entries — and `spec["land_use_no_data"]`. Any land use type not
+        present in `spec["potential"]` gets a zero-constant, no-driver spec.
+
+        `**_ignored` absorbs kwargs meant for other strategies (e.g.
+        `potential_columns`) so a generic executor can call every
+        registered strategy's `from_spec` with the same spec dict.
+        """
+        potential_map = {p.get("lu"): p for p in spec.get("potential", [])}
+        potential_data = [[
+            RegressionSpec(
+                const  = potential_map[lu].get("const", 0.0),
+                betas  = potential_map[lu].get("betas", {}),
+                is_log = potential_map[lu].get("is_log", False),
+            ) if lu in potential_map else RegressionSpec(const=0.0)
+            for lu in land_use_types
+        ]]
+        return cls(
+            gdf              = gdf,
+            potential_data   = potential_data,
+            demand           = demand,
+            land_use_types   = land_use_types,
+            land_use_no_data = spec.get("land_use_no_data", "outros"),
+        )

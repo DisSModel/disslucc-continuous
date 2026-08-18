@@ -8,6 +8,7 @@ from __future__ import annotations
 import numpy as np
 
 from disslucc_continuous.schemas.schemas import AllocationSpec
+from disslucc_continuous.schemas.protocols import DemandProtocol, PotentialProtocol
 from dissmodel.geo import SyncRasterModel
 
 class AllocationClueLike(SyncRasterModel):
@@ -21,8 +22,8 @@ class AllocationClueLike(SyncRasterModel):
     def setup(
         self,
         backend,
-        demand,
-        potential,
+        demand:              DemandProtocol,
+        potential:           PotentialProtocol,
         land_use_types:     list[str],
         static:             dict[str, int],
         complementar_lu:    str,
@@ -94,7 +95,7 @@ class AllocationClueLike(SyncRasterModel):
 
         for lu_idx, lu in enumerate(self.land_use_types):
             lu_dir  = self.demand.get_current_lu_direction(lu_idx)
-            pot     = self.backend.get(lu + "_pot").astype(np.float32)
+            pot     = np.asarray(self.potential.get_potential(lu)).astype(np.float32)
             past    = self.backend.get(lu + "_past").astype(np.float32)
             alloc   = self.allocation_data[lu_idx]
             lu_stat = self.static[lu]
@@ -252,3 +253,25 @@ class AllocationClueLike(SyncRasterModel):
                         np.maximum(0.0, self.backend.get(lu) - deficit),
                         self.backend.get(lu),
                     )
+
+    # ── factory: build from a resolved model spec (TOML) ────────────────────
+
+    @classmethod
+    def from_spec(cls, spec: dict, *, demand, potential, land_use_types: list[str], backend, **_ignored):
+        """Raster counterpart of AllocationClueLike(vector).from_spec."""
+        allocation_map = {a.get("lu"): a for a in spec.get("allocation", [])}
+        allocation_data = [[
+            AllocationSpec(**{k: v for k, v in allocation_map[lu].items() if k != "lu"})
+            if lu in allocation_map else AllocationSpec()
+            for lu in land_use_types
+        ]]
+        return cls(
+            backend         = backend,
+            demand          = demand,
+            potential       = potential,
+            land_use_types  = land_use_types,
+            static          = {lu: spec.get("static", {}).get(lu, -1) for lu in land_use_types},
+            complementar_lu = spec.get("complementar_lu", land_use_types[0]),
+            cell_area       = spec.get("cell_area", 25.0),
+            allocation_data = allocation_data,
+        )

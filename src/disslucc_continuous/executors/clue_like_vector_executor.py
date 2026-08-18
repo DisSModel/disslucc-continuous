@@ -66,70 +66,76 @@ class LUCCVectorExecutor(ModelExecutor):
 
         `data` is the GeoDataFrame returned by load(), injected by the platform.
         No I/O happens here.
+
+        This executor does not import or know about any concrete Potential
+        or Allocation class. `model.potential_strategy` / `model.allocation_strategy`
+        in the spec select which registered strategy to build via its own
+        `from_spec` factory (see `disslucc_continuous.components.registry`) —
+        equivalent to a modeler swapping which `Potential*.lua` / `Allocation*.lua`
+        they pass into `LuccMEModel{...}` in the original LuccME.
         """
         from dissmodel.core import Environment
-        from disslucc_continuous import DemandPreComputedValues, load_demand_csv
-        from disslucc_continuous.components.potential.vector import PotentialLinearRegression
-        from disslucc_continuous.components.allocation.vector import AllocationClueLike
-        from disslucc_continuous.schemas.schemas import RegressionSpec, AllocationSpec
+        from disslucc_continuous.components.registry import (
+            resolve_potential,
+            resolve_allocation,
+            resolve_demand,
+            DEFAULT_POTENTIAL_STRATEGY,
+            DEFAULT_ALLOCATION_STRATEGY,
+            DEFAULT_DEMAND_STRATEGY,
+        )
 
-        spec     = record.resolved_spec.get("model", {})
         params   = record.parameters
+        # [model.parameters] (record.parameters) lands separately from the
+        # rest of [model.*] in resolved_spec — dissmodel's CLI TOML loader
+        # does not promote it up. Merge it here so land_use_types,
+        # complementar_lu, potential_strategy, etc. declared under
+        # [model.parameters] are actually seen by the spec.get(...) calls
+        # below, instead of silently falling back to defaults. `params`
+        # wins the merge so CLI --param overrides (already folded into
+        # record.parameters by _build_record) still take precedence.
+        spec     = {**record.resolved_spec.get("model", {}), **params}
         lu_types = spec.get("land_use_types", ["f", "d", "outros"])
         n_steps  = params.get("n_steps", 7)
 
         # data injected by execute_lifecycle — no I/O here
         gdf = data
 
-        # column-level validation (only possible after load)
-        _check_columns(gdf, spec)
+        potential_strategy_name  = spec.get("potential_strategy", DEFAULT_POTENTIAL_STRATEGY)
+        allocation_strategy_name = spec.get("allocation_strategy", DEFAULT_ALLOCATION_STRATEGY)
+        demand_strategy_name     = spec.get("demand_strategy", DEFAULT_DEMAND_STRATEGY)
+        PotentialCls  = resolve_potential(potential_strategy_name, "vector")
+        AllocationCls = resolve_allocation(allocation_strategy_name, "vector")
+        DemandCls     = resolve_demand(demand_strategy_name, "vector")
+
+        # column-level validation (only possible after load) — merges the
+        # base contract (land_use_types + driver_columns) with whatever
+        # extra columns the chosen potential strategy declares as required.
+        _check_columns(gdf, spec, extra_required=_strategy_required_columns(PotentialCls, spec, lu_types))
 
         # ── build models ──────────────────────────────────────────────────────
         env = Environment(end_time=n_steps - 1)
 
-        demand_raw = read_text(params["demand_csv"]) 
+        # Read demand_csv here (once, if a strategy needs it) — from_spec
+        # itself does no I/O, same convention as the potential/allocation
+        # factories. Strategies that don't need it (e.g. "inline") simply
+        # ignore demand_raw via **_ignored.
+        # Only read demand_csv when the selected strategy is "csv" — a
+        # leftover/unused demand_csv key alongside demand_strategy="inline"
+        # (or any future strategy that doesn't need a CSV) must not trigger
+        # a file read that then fails or silently succeeds on stale data.
+        demand_csv_uri = params.get("demand_csv") if demand_strategy_name == "csv" else None
+        demand_raw     = read_text(demand_csv_uri) if demand_csv_uri else None
 
-        demand = DemandPreComputedValues(
-            annual_demand  = load_demand_csv(demand_raw, lu_types),
-            land_use_types = lu_types,
+        demand = DemandCls.from_spec(
+            spec, land_use_types=lu_types, demand_raw=demand_raw,
         )
 
-        # Map potential and allocation specs by land use type (order-independent)
-        potential_map  = {p.get("lu"): p for p in spec.get("potential", [])}
-        allocation_map = {a.get("lu"): a for a in spec.get("allocation", [])}
-
-        potential_data = [[
-            RegressionSpec(
-                const  = potential_map[lu].get("const", 0.0),
-                betas  = potential_map[lu].get("betas", {}),
-                is_log = potential_map[lu].get("is_log", False),
-            ) if lu in potential_map else RegressionSpec(const=0.0)
-            for lu in lu_types
-        ]]
-
-        allocation_data = [[
-            AllocationSpec(**{k: v for k, v in allocation_map[lu].items() if k != "lu"})
-            if lu in allocation_map else AllocationSpec()
-            for lu in lu_types
-        ]]
-
-        potential = PotentialLinearRegression(
-            gdf              = gdf,
-            potential_data   = potential_data,
-            demand           = demand,
-            land_use_types   = lu_types,
-            land_use_no_data = spec.get("land_use_no_data", "outros"),
+        potential = PotentialCls.from_spec(
+            spec, demand=demand, land_use_types=lu_types, gdf=gdf,
         )
 
-        AllocationClueLike(
-            gdf             = gdf,
-            demand          = demand,
-            potential       = potential,
-            land_use_types  = lu_types,
-            static          = {lu: spec.get("static", {}).get(lu, -1) for lu in lu_types},
-            complementar_lu = spec.get("complementar_lu", lu_types[0]),
-            cell_area       = spec.get("cell_area", 25.0),
-            allocation_data = allocation_data,
+        AllocationCls.from_spec(
+            spec, demand=demand, potential=potential, land_use_types=lu_types, gdf=gdf,
         )
 
         if params.get("interactive", False):
@@ -145,6 +151,11 @@ class LUCCVectorExecutor(ModelExecutor):
                 },
             )
 
+        record.add_log(
+            f"potential_strategy={potential_strategy_name} "
+            f"allocation_strategy={allocation_strategy_name} "
+            f"demand_strategy={demand_strategy_name}"
+        )
         record.add_log(f"Running {n_steps} steps...")
         env.run()
         record.add_log("Simulation complete")
@@ -172,14 +183,26 @@ class LUCCVectorExecutor(ModelExecutor):
 
 
     
-def _check_columns(gdf: gpd.GeoDataFrame, spec: dict) -> None:
+def _strategy_required_columns(strategy_cls, spec: dict, lu_types: list[str]) -> set[str]:
+    """
+    Ask the chosen potential strategy for any columns it needs beyond
+    land_use_types/driver_columns (e.g. potential_columns for
+    PotentialPrecomputed). Strategies that don't declare extra
+    requirements (e.g. PotentialLinearRegression) simply don't
+    implement this classmethod.
+    """
+    hook = getattr(strategy_cls, "required_columns", None)
+    return set(hook(spec, lu_types)) if hook else set()
+
+
+def _check_columns(gdf: gpd.GeoDataFrame, spec: dict, extra_required: set[str] | None = None) -> None:
     """
     Verify expected columns are present after column_map has been applied.
     Runs inside run() after a single load() — not in validate().
     """
     lu_types    = spec.get("land_use_types", [])
     driver_cols = spec.get("driver_columns", {}).get("cols", [])
-    expected    = set(lu_types) | set(driver_cols)
+    expected    = set(lu_types) | set(driver_cols) | (extra_required or set())
 
     if not expected:
         return
@@ -190,7 +213,8 @@ def _check_columns(gdf: gpd.GeoDataFrame, spec: dict) -> None:
         raise ValueError(
             f"Columns missing after column_map: {missing}\n"
             f"Dataset columns: {sorted(gdf.columns)}\n"
-            f"Check column_map or driver_columns in model.toml."
+            f"Check column_map, driver_columns, or the fields required by "
+            f"the chosen potential_strategy in model.toml."
         )
 
 

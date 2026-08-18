@@ -123,3 +123,26 @@ class DemandPreComputedValues(Model):
     def change_lu_direction(self, i: int) -> int:
         self.demand_direction[i] *= -1
         return self.demand_direction[i]
+
+    # ── factory: build from a resolved model spec (TOML) ────────────────────
+
+    @classmethod
+    def from_spec(cls, spec: dict, *, land_use_types: list[str], demand_raw: str | None = None, **_ignored):
+        """
+        Build from a CSV string already read by the executor.
+
+        I/O (reading demand_csv from a path/URI) happens once in the
+        executor's run(), same place the original hardcoded call did it —
+        from_spec only parses, matching the no-I/O convention every other
+        strategy's from_spec follows.
+        """
+        if not demand_raw:
+            raise ValueError(
+                "demand_strategy='csv' requires demand_csv to be set in "
+                "[model.parameters] so the executor can read it before "
+                "calling from_spec."
+            )
+        return cls(
+            annual_demand  = load_demand_csv(demand_raw, land_use_types),
+            land_use_types = land_use_types,
+        )

@@ -10,6 +10,8 @@ Main facade for all components (Science and Infra).
 from .components.demand     import DemandPreComputedValues, load_demand_csv
 from .components.potential.raster import PotentialLinearRegression as PotentialRaster
 from .components.potential.vector import PotentialLinearRegression as PotentialVector
+from .components.potential.raster import PotentialPrecomputed as PotentialPrecomputedRaster
+from .components.potential.vector import PotentialPrecomputed as PotentialPrecomputedVector
 from .components.allocation.raster import AllocationClueLike as AllocationRaster
 from .components.allocation.vector import AllocationClueLike as AllocationVector
 
@@ -29,6 +31,8 @@ __all__ = [
     "PotentialRaster",
     "PotentialVector",
     "PotentialLinearRegression",
+    "PotentialPrecomputedRaster",
+    "PotentialPrecomputedVector",
     "AllocationRaster",
     "AllocationVector",
     "AllocationClueLike",

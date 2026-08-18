@@ -101,3 +101,37 @@ class PotentialLinearRegression(SyncRasterModel):
         else:
             spec.newconst += 0.1 * direction
         self._compute_potential(r_number, lu_idx)
+
+    # ── PotentialProtocol ────────────────────────────────────────────────────
+
+    def get_potential(self, lu: str):
+        """
+        Expõe o potencial já calculado para `lu` sem que o chamador
+        (Allocation) precise conhecer a convenção de array `<lu>_pot`.
+        """
+        return self.backend.get(lu + "_pot")
+
+    # ── factory: build from a resolved model spec (TOML) ────────────────────
+
+    @classmethod
+    def from_spec(cls, spec: dict, *, demand, land_use_types: list[str], backend, **_ignored):
+        """
+        Raster counterpart of PotentialLinearRegression(vector).from_spec.
+        See the vector module for the full docstring.
+        """
+        potential_map = {p.get("lu"): p for p in spec.get("potential", [])}
+        potential_data = [[
+            RegressionSpec(
+                const  = potential_map[lu].get("const", 0.0),
+                betas  = potential_map[lu].get("betas", {}),
+                is_log = potential_map[lu].get("is_log", False),
+            ) if lu in potential_map else RegressionSpec(const=0.0)
+            for lu in land_use_types
+        ]]
+        return cls(
+            backend          = backend,
+            potential_data   = potential_data,
+            demand           = demand,
+            land_use_types   = land_use_types,
+            land_use_no_data = spec.get("land_use_no_data", "outros"),
+        )
