@@ -25,6 +25,10 @@ dev = [
     "black>=22.0.0",
     "ruff>=0.0.200",
 ]
+toolkit = [
+    "tomli_w>=1.0.0",
+    "streamlit>=1.30.0",
+]
 
 [tool.black]
 line-length = 88
