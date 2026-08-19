@@ -488,6 +488,11 @@ classes are never compared against TerraME, and neither are intermediate steps.
 
 ---
 
+## Equipe PIBIC 2026
+- *Samylli Kalei Silva Zhao* — Plano 2: Implementação e Validação de Modelos Contínuos de LUCC Baseados na Abordagem CLUE
+
+---
+
 ## 🤝 Contributing
 
 1. Fork the repository and create a feature branch
