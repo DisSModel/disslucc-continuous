@@ -8,15 +8,15 @@ from dissmodel.geo import SyncSpatialModel
 
 class AllocationClueLike(SyncSpatialModel):
     """
-    Alocação contínua tipo CLUE (Verburg et al. 1999).
+    Continuous CLUE-like allocation (Verburg et al. 1999).
 
-    _past é gerenciado pelo LUCSpatialModel via synchronize()
+    _past is managed by LUCSpatialModel via synchronize()
     após cada execute() — equivale ao cs:synchronize() do TerraME.
 
-    Esta versão é equivalente ao AllocationCClueLike.lua, incluindo:
-      - correctCellChange: corrige células cuja soma de usos ≠ 1.0
+    This version is equivalent to AllocationCClueLike.lua, including:
+      - correctCellChange: fixes cells whose land-use sum != 1.0
       - minChange / maxChange por uso do solo
-      - static == 0 (modo ANAP: muda independente da direção da demanda)
+      - static == 0 (ANAP mode: changes regardless of demand direction)
       - minValue / maxValue com lógica condicional de past
     """
 
@@ -82,7 +82,7 @@ class AllocationClueLike(SyncSpatialModel):
                 flag_flex   = True
             if n_iter >= self.max_iteration:
                 raise RuntimeError(
-                    f"Alocação não convergiu no passo {step} (erro={max_diff:.1f})"
+                    f"Allocation did not converge at step {step} (error={max_diff:.1f})"
                 )
 
         self._apply_complementar()
