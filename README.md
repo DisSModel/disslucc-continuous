@@ -457,6 +457,12 @@ not "numerical equivalence", which would imply cell-by-cell parity.
 > The original LuccME script declares `maxDifference = 1643` in
 > `AllocationCClueLike`, in area units, against a 2014 demand of 21607.38 for
 > class `d` — a **7.6% convergence band**. The Python defaults match it exactly.
+> The script itself (`lab1_main.lua` + `lab1_submodel.lua`) is vendored,
+> unmodified, at [`benchmark/reference/`](benchmark/reference/README.md) for
+> auditability. It is **not** the same script as `terrame/luccme`'s public
+> `tests/functional/lab01.lua`, which shares this scenario's coefficients and
+> demand but declares `maxDifference = 5000` and did not generate this
+> reference data — see `benchmark/reference/README.md`.
 >
 > This band is wide enough that the reference itself stops 1001.45 area units
 > short of the demand it declares. That is legitimate convergence slack, not a
