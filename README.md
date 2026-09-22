@@ -8,6 +8,20 @@
 
 ---
 
+> ⚠️ **Superseded.** Development has moved to
+> **[`disslucc`](https://github.com/DisSModel/disslucc)**, which merges this
+> repository and [`disslucc-discrete`](https://github.com/DisSModel/disslucc-discrete)
+> into a single raster-only package (same continuous CLUE-like algorithm,
+> validated against the same Lab1 reference). This repository is archived:
+> no further changes, and **no guarantee of compatibility with `dissmodel`
+> releases beyond the version range declared in `pyproject.toml` at the time
+> of archiving**. It remains here, unmodified, for citation and history — the
+> same treatment [`terrame/luccme`](https://github.com/terrame/luccme)
+> itself received when active LuccME development moved on. Kept installable
+> via `pip install git+...` as before; never published to PyPI.
+
+---
+
 ## 📖 About
 
 **DisSLUCC-Continuous** is a Python library that implements spatially explicit components for continuous Land Use and Cover Change (LUCC) modeling. It is directly inspired by the **[LUCCME](http://luccme.ccst.inpe.br)** framework and the **[TerraME](http://www.terrame.org)** environment, originally developed by the Earth System Science Center (CCST/INPE, Brazil).
